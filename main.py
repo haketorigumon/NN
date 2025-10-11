@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
+import argparse
 import sys
+from dataclasses import dataclass
 import numpy as np
-from typing import Dict, List, Tuple
+
+
+@dataclass
+class LossFunOutput:
+    loss: float
+    dWxh: np.ndarray
+    dWhh: np.ndarray
+    dWhy: np.ndarray
+    dbh: np.ndarray
+    dby: np.ndarray
+    hprev: np.ndarray
 
 
 def softmax(x: np.ndarray) -> np.ndarray:
@@ -34,10 +46,10 @@ class RNN:
 
     def lossFun(
         self,
-        inputs: List[int],
-        targets: List[int],
+        inputs: list[int],
+        targets: list[int],
         hprev: np.ndarray,
-    ) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> LossFunOutput:
         """
         前向传播 + 反向传播
         inputs, targets: 整数列表
@@ -78,9 +90,17 @@ class RNN:
         for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
             np.clip(dparam, -5, 5, out=dparam)
 
-        return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs) - 1]
+        return LossFunOutput(
+            loss=loss,
+            dWxh=dWxh,
+            dWhh=dWhh,
+            dWhy=dWhy,
+            dbh=dbh,
+            dby=dby,
+            hprev=hs[len(inputs) - 1],
+        )
 
-    def sample(self, h: np.ndarray, seed_ix: int, n: int) -> List[int]:
+    def sample(self, h: np.ndarray, seed_ix: int, n: int) -> list[int]:
         """基于当前模型采样 n 个字符"""
         x = np.zeros((self.vocab_size, 1))
         x[seed_ix] = 1
@@ -97,7 +117,7 @@ class RNN:
 
         return ixes
 
-    def update(self, grads: Tuple[np.ndarray, ...]) -> None:
+    def update(self, grads: tuple[np.ndarray, ...]) -> None:
         """Adagrad 更新参数"""
         dWxh, dWhh, dWhy, dbh, dby = grads
         for param, dparam, mem in zip(
@@ -109,46 +129,57 @@ class RNN:
             param += -self.learning_rate * dparam / np.sqrt(mem + 1e-8)
 
 
-def train_rnn(data: str, rnn: RNN, char_to_ix: Dict[str, int], ix_to_char: Dict[int, str]) -> None:
-    n, p = 0, 0
+def train_rnn(
+    data: str,
+    rnn: RNN,
+    char_to_ix: dict[str, int],
+    ix_to_char: dict[int, str],
+    num_iterations: int,
+) -> None:
+    p = 0
     smooth_loss = -np.log(1.0 / rnn.vocab_size) * rnn.seq_length
     hprev = np.zeros((rnn.hidden_size, 1))
 
-    try:
-        while True:
-            if p + rnn.seq_length + 1 >= len(data) or n == 0:
-                hprev = np.zeros((rnn.hidden_size, 1))
-                p = 0
+    for n in range(num_iterations):
+        if p + rnn.seq_length + 1 >= len(data):
+            hprev = np.zeros((rnn.hidden_size, 1))
+            p = 0
 
-            inputs = [char_to_ix[ch] for ch in data[p: p + rnn.seq_length]]
-            targets = [char_to_ix[ch] for ch in data[p + 1: p + rnn.seq_length + 1]]
+        inputs = [char_to_ix[ch] for ch in data[p: p + rnn.seq_length]]
+        targets = [char_to_ix[ch] for ch in data[p + 1: p + rnn.seq_length + 1]]
 
-            # 采样
-            if n % 100 == 0:
-                sample_ix = rnn.sample(hprev, inputs[0], 200)
-                txt = "".join(ix_to_char[ix] for ix in sample_ix)
-                print(f"----\n{txt}\n----")
+        # 采样
+        if n % 100 == 0:
+            sample_ix = rnn.sample(hprev, inputs[0], 200)
+            txt = "".join(ix_to_char[ix] for ix in sample_ix)
+            print(f"----\n{txt}\n----")
 
-            # 训练一步
-            loss, *grads, hprev = rnn.lossFun(inputs, targets, hprev)
-            smooth_loss = smooth_loss * 0.999 + loss * 0.001
+        # 训练一步
+        loss_output = rnn.lossFun(inputs, targets, hprev)
+        grads = (
+            loss_output.dWxh,
+            loss_output.dWhh,
+            loss_output.dWhy,
+            loss_output.dbh,
+            loss_output.dby,
+        )
+        rnn.update(grads)
 
-            if n % 100 == 0:
-                print(f"iter {n}, loss: {smooth_loss:.4f}")
+        smooth_loss = smooth_loss * 0.999 + loss_output.loss * 0.001
+        if n % 100 == 0:
+            print(f"iter {n}, loss: {smooth_loss:.4f}")
 
-            rnn.update(grads)
-            p += rnn.seq_length
-            n += 1
-    except KeyboardInterrupt:
-        print("\n训练已中断。")
+        hprev = loss_output.hprev
+        p += rnn.seq_length
 
 
 def main() -> None:
-    if len(sys.argv) < 2:
-        print("用法: python rnn.py <input.txt>")
-        return
+    parser = argparse.ArgumentParser(description="从文本文件中训练一个字符级 RNN。")
+    parser.add_argument("input_file", help="用于训练的输入文本文件。")
+    parser.add_argument("--num_iterations", type=int, default=100000, help="训练的迭代次数。")
+    args = parser.parse_args()
 
-    with open(sys.argv[1], "r", encoding="utf-8") as f:
+    with open(args.input_file, "r", encoding="utf-8") as f:
         data = f.read()
 
     chars = list(set(data))
@@ -159,7 +190,7 @@ def main() -> None:
     ix_to_char = {i: ch for i, ch in enumerate(chars)}
 
     rnn = RNN(vocab_size)
-    train_rnn(data, rnn, char_to_ix, ix_to_char)
+    train_rnn(data, rnn, char_to_ix, ix_to_char, args.num_iterations)
 
 
 if __name__ == "__main__":
