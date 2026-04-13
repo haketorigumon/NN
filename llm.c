@@ -349,18 +349,5 @@ int main(int argc, char **argv) {
         printf("%c", (char)next);
         current = next;
     }
-
-        printf("\n\n✅ Original command line interface fully preserved:\n");
-        printf("   Usage: %s --train corpus.txt [--epochs N] [--seed \"text\"] [--tokens N]\n", argv[0]);
-        printf("\n   Parameters:\n");
-        printf("     --train corpus.txt    Train on given text corpus\n");
-        printf("     --epochs N           Number of training epochs (default 20)\n");
-        printf("     --seed \"text\"        Seed text for generation (default \"a\")\n");
-        printf("     --tokens N           Number of tokens to generate (default 50)\n");
-    }
-
-    return 0;
-}
-
     return 0;
 }
