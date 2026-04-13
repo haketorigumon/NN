@@ -1,13 +1,3 @@
-/*
- * HTM-SMDDS v4.0: Working HTM Language Model
- *
- * Simplified, working implementation:
- * - Progressive feature learning
- * - Clear reward signals
- * - Controlled learning rates
- * - Step-by-step convergence
- */
-
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdio.h>
