@@ -6,7 +6,6 @@
 #include <math.h>
 #include <time.h>
 #include <stdint.h>
-#include <getopt.h>
 
 #define VOCAB_SIZE 256
 #define EMBEDDING_DIM 16
@@ -276,23 +275,18 @@ int main(int argc, char **argv) {
     int epochs = 20;
     int gen_tokens = 50;
 
-    // Preserve original command line interface
-    static struct option long_options[] = {
-        {"train", required_argument, 0, 't'},
-        {"seed", required_argument, 0, 'd'},
-        {"tokens", required_argument, 0, 'n'},
-        {"epochs", required_argument, 0, 'e'},
-        {0, 0, 0, 0}
-    };
-
-    int opt;
-    while ((opt = getopt_long(argc, argv, "t:d:n:e:", long_options, NULL)) != -1) {
-        switch (opt) {
-            case 't': train_file = optarg; break;
-            case 'd': seed_text = optarg; break;
-            case 'n': gen_tokens = atoi(optarg); break;
-            case 'e': epochs = atoi(optarg); break;
+    for (int i = 1; i < argc; i++) {
+    if (i + 1 < argc) {
+        if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
+            train_file = argv[++i];
+        } else if (strcmp(argv[i], "--seed") == 0 || strcmp(argv[i], "-d") == 0) {
+            seed_text = argv[++i];
+        } else if (strcmp(argv[i], "--tokens") == 0 || strcmp(argv[i], "-n") == 0) {
+            gen_tokens = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
+            epochs = atoi(argv[++i]);
         }
+    }
     }
 
     init_model();
