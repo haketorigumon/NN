@@ -153,13 +153,12 @@ static void update_clause(HTMClause *clause, const uint8_t *features, float rewa
  * Forward Pass (Working)
  * ============================================================ */
 
-static void forward(int token, float *logits) {
+static void forward(int token, float *tm_outputs) {
     const float *emb = model.embedding[token];
     uint8_t features[CLAUSE_FEATURES];
     encode_features(features, emb);
 
     int clause_outputs[CLAUSES] = {0};
-    unsigned char tm_outputs[(TMS + 7) / 8] = {0};
     
     for (int r = 0; r < TMS; r++) {
         int aa = tm_bias[r];
@@ -191,41 +190,11 @@ static void forward(int token, float *logits) {
             SET_BIT(tm_outputs, r);
         }
     }
-
-    // Compute output
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        float sum = model.output_bias[c];
-        for (int k = 0; k < HTM_CLAUSES; k++) {
-            sum += clause_outputs[k] * model.output_weights[k][c];
-        }
-        logits[c] = sum;
-    }
-
-    // Softmax normalization
-    float max_val = logits[0];
-    for (int c = 1; c < VOCAB_SIZE; c++) {
-        if (logits[c] > max_val) max_val = logits[c];
-    }
-
-    float sum = 0.0f;
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        logits[c] = expf(logits[c] - max_val);
-        sum += logits[c];
-    }
-
-    float inv_sum = 1.0f / sum;
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        logits[c] *= inv_sum;
-    }
 }
 
-/* ============================================================
- * Training (Working)
- * ============================================================ */
-
 static float train_step(int token, int next_token) {
-    int logits[VOCAB_SIZE] = {0};
-    forward(token, logits);
+    unsigned char tm_outputs[(TMS + 7) / 8] = {0};
+    forward(token, tm_outputs);
 
     // Calculate loss
     float loss = -logf(fmaxf(logits[next_token], 1e-10f));
