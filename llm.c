@@ -154,9 +154,7 @@ static void update_clause(HTMClause *clause, const uint8_t *features, float rewa
  * ============================================================ */
 
 static void forward(int token, float *tm_outputs) {
-    const float *emb = model.embedding[token];
-    uint8_t features[CLAUSE_FEATURES];
-    encode_features(features, emb);
+    unsigned char features[(CLAUSE_FEATURES + 7) / 8] = {0};
 
     int clause_outputs[CLAUSES] = {0};
     
