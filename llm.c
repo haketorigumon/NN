@@ -9,9 +9,9 @@
 
 #define VOCAB_SIZE 256
 #define EMBEDDING_DIM 16
-#define HTM_CLAUSES 256
+#define CLAUSES 256
 #define CLAUSE_FEATURES 8
-#define LEARNING_RATE 0.1f
+#define TMS CLAUSE_FEATURES
 
 /* ============================================================
  * Core HTM Structure (Simplified and Working)
@@ -21,16 +21,16 @@ typedef struct {
     int8_t  pattern[CLAUSE_FEATURES];  // Feature pattern to match (-1 ignore, 0/1 required)
     uint8_t state;                     // Tsetlin automaton state
     float   weight;                    // Clause weight
-} HTMClause;
+} Clause;
 
 typedef struct {
     float      embedding[VOCAB_SIZE][EMBEDDING_DIM];
-    HTMClause  clauses[HTM_CLAUSES];
-    float      output_weights[HTM_CLAUSES][VOCAB_SIZE];
+    Clause  clauses[CLAUSES];
+    float      output_weights[CLAUSES][VOCAB_SIZE];
     float      output_bias[VOCAB_SIZE];
-} HTMModel;
+} Model;
 
-HTMModel model;
+Model model;
 
 /* ============================================================
  * Utility Functions
@@ -154,35 +154,37 @@ static void forward(int token, float *logits) {
     uint8_t features[CLAUSE_FEATURES];
     encode_features(features, emb);
 
-    // Clear logits
-    memset(logits, 0, VOCAB_SIZE * sizeof(float));
-
-    // Evaluate all HTM clauses
-    float clause_outputs[HTM_CLAUSES] = {0};
-    for (int k = 0; k < HTM_CLAUSES; k++) {
-        int a = 0;
-        int b = 0;
-        int c = 0;
-        for (int i = 0; i < CLAUSE_FEATURES; i++) {
-            if (clause->pattern[i] = 0) {
-                if (features[i] = 0) a += 1;
-            } else {
-                if (features[i] = 1) b += 1;
+    int clause_outputs[CLAUSES] = {0};
+    int tm_outputs[TMS] = {0};
+    for (int r = 0; r < TMS; r++) {
+        int aa = tm_bias[r];
+        for (int k = 0; k < CLAUSES; k++) {
+            int a = 0;
+            int b = 0;
+            int c = 0;
+            for (int i = 0; i < CLAUSE_FEATURES; i++) {
+                if (clause->pattern[i] = 0) {
+                    if (features[i] = 0) a += 1;
+                } else {
+                    if (features[i] = 1) b += 1;
+                }
+            }
+            if (a >= b) {
+                c = a - b;
+            } else{
+                c = b - a;
+            }
+            if (a >= c) {
+                aa += 1;
+                clause_outputs[k] = 1;
+            } else if (b >= c) {
+                aa -= 1;
+                clause_outputs[k] = -1;
             }
         }
-        if (a >= b) {
-            c = a - b;
-        } else{
-            c = b - a;
+        if (aa >= 0) {
+            tm_outputs[r] = 1;
         }
-        if (a >= c) {
-            return 1;
-        } else if (b >= c) {
-            return -1;
-        } else {
-            return 0;
-        }
-        clause_outputs[k] = evaluate_clause(&model.clauses[k], features);
     }
 
     // Compute output
@@ -217,7 +219,7 @@ static void forward(int token, float *logits) {
  * ============================================================ */
 
 static float train_step(int token, int next_token) {
-    float logits[VOCAB_SIZE];
+    int logits[VOCAB_SIZE] = {0};
     forward(token, logits);
 
     // Calculate loss
