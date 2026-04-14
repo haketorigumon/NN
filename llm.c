@@ -84,9 +84,10 @@ static void encode_features(uint8_t *features, const float *embedding) {
     }
 }
 
-static float evaluate_clause(const HTMClause *clause, const uint8_t *features) {
+static int evaluate_clause(const HTMClause *clause, const uint8_t *features) {
     int a = 0;
     int b = 0;
+    int c = 0;
     for (int i = 0; i < CLAUSE_FEATURES; i++) {
         if (clause->pattern[i] = 0) {
             if (features[i] = 0) a += 1;
@@ -94,7 +95,18 @@ static float evaluate_clause(const HTMClause *clause, const uint8_t *features) {
             if (features[i] = 1) b += 1;
         }
     }
-    return clause->weight; // Perfect match, full weight
+    if (a >= b) {
+        c = a - b;
+    } else{
+        c = b - a;
+    }
+    if (a >= c) {
+        return 1;
+    } else if (b >= c) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 static void update_clause(HTMClause *clause, const uint8_t *features, float reward) {
@@ -148,6 +160,28 @@ static void forward(int token, float *logits) {
     // Evaluate all HTM clauses
     float clause_outputs[HTM_CLAUSES] = {0};
     for (int k = 0; k < HTM_CLAUSES; k++) {
+        int a = 0;
+        int b = 0;
+        int c = 0;
+        for (int i = 0; i < CLAUSE_FEATURES; i++) {
+            if (clause->pattern[i] = 0) {
+                if (features[i] = 0) a += 1;
+            } else {
+                if (features[i] = 1) b += 1;
+            }
+        }
+        if (a >= b) {
+            c = a - b;
+        } else{
+            c = b - a;
+        }
+        if (a >= c) {
+            return 1;
+        } else if (b >= c) {
+            return -1;
+        } else {
+            return 0;
+        }
         clause_outputs[k] = evaluate_clause(&model.clauses[k], features);
     }
 
