@@ -13,6 +13,9 @@
 #define CLAUSE_FEATURES 8
 #define TMS CLAUSE_FEATURES
 
+#define BIT_ARRAY_SIZE 100
+unsigned char bit_array[(BIT_ARRAY_SIZE + 7) / 8];
+
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
 #define CLEAR_BIT(arr, n)   ((arr)[(n)/8] &= ~(1U << ((n)%8)))
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
