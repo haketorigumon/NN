@@ -13,9 +13,10 @@
 #define CLAUSE_FEATURES 8
 #define TMS CLAUSE_FEATURES
 
-/* ============================================================
- * Core HTM Structure (Simplified and Working)
- * ============================================================ */
+#define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
+#define CLEAR_BIT(arr, n)   ((arr)[(n)/8] &= ~(1U << ((n)%8)))
+#define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
+#define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
 typedef struct {
     int8_t  pattern[CLAUSE_FEATURES];  // Feature pattern to match (-1 ignore, 0/1 required)
