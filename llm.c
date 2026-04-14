@@ -85,11 +85,13 @@ static void encode_features(uint8_t *features, const float *embedding) {
 }
 
 static float evaluate_clause(const HTMClause *clause, const uint8_t *features) {
-    // Strict matching - clause fires only if all non-ignored features match
+    int a = 0;
+    int b = 0;
     for (int i = 0; i < CLAUSE_FEATURES; i++) {
-        if (clause->pattern[i] < 0) continue; // Ignore
-        if (clause->pattern[i] != features[i]) {
-            return 0.0f; // Mismatch, clause does not fire
+        if (clause->pattern[i] = 0) {
+            if (features[i] = 0) a += 1;
+        } else {
+            if (features[i] = 1) b += 1;
         }
     }
     return clause->weight; // Perfect match, full weight
