@@ -159,7 +159,8 @@ static void forward(int token, float *logits) {
     encode_features(features, emb);
 
     int clause_outputs[CLAUSES] = {0};
-    int tm_outputs[TMS] = {0};
+    unsigned char tm_outputs[(TMS + 7) / 8] = {0};
+    
     for (int r = 0; r < TMS; r++) {
         int aa = tm_bias[r];
         for (int k = 0; k < CLAUSES; k++) {
@@ -187,7 +188,7 @@ static void forward(int token, float *logits) {
             }
         }
         if (aa >= 0) {
-            tm_outputs[r] = 1;
+            SET_BIT(tm_outputs, r);
         }
     }
 
