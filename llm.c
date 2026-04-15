@@ -128,10 +128,10 @@ static void forward(int token, float *tm_outputs) {
             int b = 0;
             int c = 0;
             for (int i = 0; i < CLAUSE_FEATURES; i++) {
-                if (clause->pattern[i] = 0) {
-                    if (features[i] == 0) a += 1;
+                if (clause->pattern[i] = 1) {
+                    if (GET_BIT(features,i)) a += 1;
                 } else {
-                    if (features[i] == 1) b += 1;
+                    if (!GET_BIT(features,i)) b += 1;
                 }
             }
             if (a >= b) {
