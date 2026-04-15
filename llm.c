@@ -30,19 +30,9 @@ typedef struct {
 typedef struct {
     float      embedding[VOCAB_SIZE][EMBEDDING_DIM];
     Clause  clauses[CLAUSES];
-    float      output_weights[CLAUSES][VOCAB_SIZE];
-    float      output_bias[VOCAB_SIZE];
 } Model;
 
 Model model;
-
-/* ============================================================
- * Utility Functions
- * ============================================================ */
-
-static float sigmoid(float x) {
-    return 1.0f / (1.0f + expf(-x));
-}
 
 static void init_model(void) {
     srand(12345); // Fixed seed for reproducibility
@@ -116,7 +106,7 @@ static void update_clause(HTMClause *clause, const uint8_t *features, float rewa
  * Forward Pass (Working)
  * ============================================================ */
 
-static void forward(int token, float *tm_outputs) {
+static void forward(int token, unsigned char *tm_outputs, *mem) {
     unsigned char features[(CLAUSE_FEATURES + 7) / 8] = {0};
 
     int clause_outputs[CLAUSES] = {0};
@@ -132,6 +122,27 @@ static void forward(int token, float *tm_outputs) {
                     if (GET_BIT(features,i)) a += 1;
                 } else {
                     if (!GET_BIT(features,i)) b += 1;
+                }
+            }
+            if (a >= b) {
+                c = a - b;
+            } else{
+                c = b - a;
+            }
+            if (a >= c) {
+                clause_outputs[k] = 1;
+            } else if (b >= c) {
+                clause_outputs[k] = -1;
+            }
+        }
+        for (int k = 0; k < 128; k++) {
+            for (int i = 0; i < CLAUSES; k++) {
+                if (mem[k][i] == clause_outputs[i] == 1) {
+                    outputs[i] = 1;
+                    a += 1;
+                } else if (mem[k][i] == clause_outputs[i] == -1) {
+                    outputs[i] = -1;
+                    b += 1;
                 }
             }
             if (a >= b) {
