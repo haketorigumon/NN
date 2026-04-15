@@ -124,11 +124,7 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                     if (!GET_BIT(features,i)) b += 1;
                 }
             }
-            if (a >= b) {
-                c = a - b;
-            } else{
-                c = b - a;
-            }
+            c = abs(a - b);
             if (a >= c) {
                 clause_outputs[k] = 1;
             } else if (b >= c) {
@@ -149,11 +145,7 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                     }
                 }
             }
-            if (a >= b) {
-                c = a - b;
-            } else{
-                c = b - a;
-            }
+            c = abs(a - b);
             if (a >= c) {
                 aa += 1;
                 clause_outputs[k] = 1;
