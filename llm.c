@@ -137,12 +137,16 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
         }
         for (int k = 0; k < 128; k++) {
             for (int i = 0; i < CLAUSES; k++) {
-                if (mem[k][i] == clause_outputs[i] == 1) {
-                    outputs[i] = 1;
-                    a += 1;
-                } else if (mem[k][i] == clause_outputs[i] == -1) {
-                    outputs[i] = -1;
-                    b += 1;
+                if (mem[k][i] == 1) {
+                    if (clause_outputs[i] == 1) {
+                        outputs[i] = 1;
+                        a += 1;
+                    }
+                } else {
+                    if (clause_outputs[i] == -1) {
+                        outputs[i] = -1;
+                        b += 1;
+                    }
                 }
             }
             if (a >= b) {
@@ -184,7 +188,6 @@ static float train_step(int token, int next_token) {
         }
     }
 
-    // Strong reward signals
     if (predicted == next_token) {
         reward = 2.0f; // Perfect prediction
     } else if (logits[next_token] > max_prob * 0.5f) {
@@ -193,65 +196,8 @@ static float train_step(int token, int next_token) {
         reward = -1.0f; // Wrong
     }
 
-    // Update HTM clauses
-    const float *emb = model.embedding[token];
-    uint8_t features[CLAUSE_FEATURES];
-    encode_features(features, emb);
-
-    for (int k = 0; k < HTM_CLAUSES; k++) {
-        update_clause(&model.clauses[k], features, reward);
-    }
-
-    // Update output weights with simple gradient descent
-    float target = 1.0f;
-    for (int k = 0; k < HTM_CLAUSES; k++) {
-        float clause_out = evaluate_clause(&model.clauses[k], features);
-        for (int c = 0; c < VOCAB_SIZE; c++) {
-            float grad = (c == next_token ? logits[c] - target : logits[c]) * clause_out;
-            model.output_weights[k][c] -= LEARNING_RATE * grad;
-        }
-    }
-
-    // Update bias
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        float grad = (c == next_token ? logits[c] - target : logits[c]);
-        model.output_bias[c] -= LEARNING_RATE * 0.1f * grad;
-    }
-
-    // Update embedding slightly
-    if (reward > 0.0f) {
-        for (int i = 0; i < EMBEDDING_DIM; i++) {
-            model.embedding[token][i] += ((float)rand() / RAND_MAX - 0.5f) * 0.001f;
-        }
-    }
-
     return loss;
 }
-
-/* ============================================================
- * Generation (Working)
- * ============================================================ */
-
-static int sample_next(int current_token) {
-    float logits[VOCAB_SIZE];
-    forward(current_token, logits);
-
-    // Greedy sampling (start simple)
-    float max_prob = 0.0f;
-    int next_token = 0;
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        if (logits[c] > max_prob) {
-            max_prob = logits[c];
-            next_token = c;
-        }
-    }
-
-    return next_token;
-}
-
-/* ============================================================
- * Main Program
- * ============================================================ */
 
 int main(int argc, char **argv) {
     const char *train_file = NULL;
