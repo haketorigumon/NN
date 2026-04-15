@@ -123,7 +123,6 @@ static void forward(int token, float *tm_outputs) {
     
     for (int r = 0; r < TMS; r++) {
         int aa = 0;
-        float bb = 0;
         for (int k = 0; k < CLAUSES; k++) {
             int a = 0;
             int b = 0;
@@ -144,17 +143,11 @@ static void forward(int token, float *tm_outputs) {
                 aa += 1;
                 clause_outputs[k] = 1;
             } else if (b >= c) {
-                bb += 1;
+                aa -= 1;
                 clause_outputs[k] = -1;
             }
         }
-        if (aa >= 0) {
-            bb = 1.0f / (1.0f + expf(-aa));
-        } else {
-            bb = 1.0f / (1.0f + expf(aa));
-        }
-        
-        if (aa >= 0) {
+        if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
             SET_BIT(tm_outputs, r);
         }
     }
