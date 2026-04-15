@@ -75,43 +75,6 @@ static void init_model(void) {
     memset(model.output_bias, 0, sizeof(model.output_bias));
 }
 
-/* ============================================================
- * Working HTM Implementation
- * ============================================================ */
-
-static void encode_features(uint8_t *features, const float *embedding) {
-    // Simple but effective binary feature encoding
-    for (int i = 0; i < CLAUSE_FEATURES; i++) {
-        // Binarize embedding dimension
-        int idx = i % EMBEDDING_DIM;
-        features[i] = (embedding[idx] > 0.0f) ? 1 : 0;
-    }
-}
-
-static int evaluate_clause(const HTMClause *clause, const uint8_t *features) {
-    int a = 0;
-    int b = 0;
-    int c = 0;
-    for (int i = 0; i < CLAUSE_FEATURES; i++) {
-        if (clause->pattern[i] = 0) {
-            if (features[i] = 0) a += 1;
-        } else {
-            if (features[i] = 1) b += 1;
-        }
-    }
-    if (a >= b) {
-        c = a - b;
-    } else{
-        c = b - a;
-    }
-    if (a >= c) {
-        return 1;
-    } else if (b >= c) {
-        return -1;
-    } else {
-        return 0;
-    }
-}
 
 static void update_clause(HTMClause *clause, const uint8_t *features, float reward) {
     // Evaluate how well this clause matches
@@ -159,7 +122,8 @@ static void forward(int token, float *tm_outputs) {
     int clause_outputs[CLAUSES] = {0};
     
     for (int r = 0; r < TMS; r++) {
-        int aa = tm_bias[r];
+        int aa = 0;
+        float bb = 0;
         for (int k = 0; k < CLAUSES; k++) {
             int a = 0;
             int b = 0;
@@ -180,10 +144,16 @@ static void forward(int token, float *tm_outputs) {
                 aa += 1;
                 clause_outputs[k] = 1;
             } else if (b >= c) {
-                aa -= 1;
+                bb += 1;
                 clause_outputs[k] = -1;
             }
         }
+        if (aa >= 0) {
+            bb = 1.0f / (1.0f + expf(-aa));
+        } else {
+            bb = 1.0f / (1.0f + expf(aa));
+        }
+        
         if (aa >= 0) {
             SET_BIT(tm_outputs, r);
         }
