@@ -11,6 +11,7 @@
 #define EMBEDDING_DIM 16
 #define CLAUSES 256
 #define META_CLAUSES 256
+#define MEM 256
 #define CLAUSE_FEATURES 8
 #define META_CLAUSE_FEATURES CLAUSES * 2
 #define TMS CLAUSE_FEATURES
@@ -68,51 +69,38 @@ static void init_model(void) {
 }
 
 
-static void update_clause(HTMClause *clause, const uint8_t *features, float reward) {
-    // Evaluate how well this clause matches
-    int matches = 0;
-    for (int i = 0; i < CLAUSE_FEATURES; i++) {
-        if (clause->pattern[i] < 0) {
-            matches++;
-        } else if (clause->pattern[i] == features[i]) {
-            matches++;
-        }
+static unsigned char *clause(const unsigned char *features, unsigned char *pattern) {
+    unsigned char clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    for (int k = 0; k < CLAUSES; k++) {
+            int a = 0;
+            int b = 0;
+            for (int i = 0; i < CLAUSE_FEATURES; i++) {
+                if (GET_BIT(pattern,i)) {
+                    if (GET_BIT(features,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
+                }
+                if (GET_BIT(features,i+CLAUSE_FEATURES)) {
+                    if (!GET_BIT(features,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
+                }
+            }
+            if (b < abs(a - b)) {
+                SET_BIT(clause_outputs,k);
+            }
     }
-    float match_ratio = (float)matches / CLAUSE_FEATURES;
-
-    // Tsetlin automaton update with controlled learning
-    if (reward > 0.5f) {
-        // Positive reward: strengthen matching clauses
-        if (match_ratio > 0.7f) {
-            clause->state += (uint8_t)LEARNING_RATE;
-        } else {
-            clause->state -= (uint8_t)(LEARNING_RATE * 0.5f);
-        }
-    } else {
-        // Negative reward: weaken mismatching clauses
-        if (match_ratio > 0.5f) {
-            clause->state -= (uint8_t)LEARNING_RATE;
-        }
-    }
-
-    // Flip pattern when state drops below threshold
-    if (clause->state < 64) {
-        // Randomly flip one feature
-        int flip_idx = rand() % CLAUSE_FEATURES;
-        model.clauses[rand() % HTM_CLAUSES].pattern[flip_idx] = rand() % 3 - 1;
-        clause->state = 128; // Reset state
-    }
+    return clause_outputs;
 }
-
-/* ============================================================
- * Forward Pass (Working)
- * ============================================================ */
-
 static void forward(int token, unsigned char *tm_outputs, *mem) {
     unsigned char features[(CLAUSE_FEATURES + 7) / 8] = {0};
-
-    int clause_outputs[CLAUSES] = {0};
-    int meta_clause_outputs[META_CLAUSES] = {0};
+    unsigned char clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    unsigned char meta_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    unsigned char hyper_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
     
     for (int r = 0; r < TMS; r++) {
         int aa = 0;
@@ -136,7 +124,7 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                 }
             }
             if (b < abs(a - b)) {
-                clause_outputs[k] = 1;
+                SET_BIT(clause_outputs,k);
             }
         }
         for (int k = 0; k < META_CLAUSES * META_CLAUSE_FEATURES; k++) {
@@ -159,13 +147,20 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                 }
             }
             if (b < abs(a - b)) {
-                meta_clause_outputs[k] = 1;
+                SET_BIT(meta_clause_outputs,k);
             }
         }
         for (int k = 0; k < META_CLAUSES; k++) {
             for (int i = 0; i < CLAUSES; k++) {
-                if (mem[k][i] == 1) {
-                    if (clause_outputs[i] == 1) {
+                if (meta_clause_outputs[k*META_CLAUSES+i] == 1) {
+                    if (GET_BIT(clause_outputs,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
+                }
+                if (meta_clause_outputs[META_CLAUSES+k*META_CLAUSES+i] == 1) {
+                    if (!GET_BIT(clause_outputs,i)) {
                         a += 1;
                     } else {
                         b += 1;
@@ -173,12 +168,8 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                 }
             }
             c = abs(a - b);
-            if (a >= c) {
-                aa += 1;
-                clause_outputs[k] = 1;
-            } else if (b >= c) {
-                aa -= 1;
-                clause_outputs[k] = -1;
+            if (b < c) {
+                SET_BIT(hyper_clause_outputs,k);
             }
         }
         if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
