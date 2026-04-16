@@ -74,7 +74,7 @@ static int categorical_sample(const double* probs, int num_classes)
             return i;
         }
     }
-    return num_classes - 1;  // 防止浮点误差
+    return num_classes - 1;
 }
 
 static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause_size, size_t feature_size) {
@@ -104,7 +104,7 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
     }
     return clause_outputs;
 }
-static int forward(uint8_t token, uint8_t *tm_outputs, uint8_t *mem) {
+static int forward(uint8_t token, uint8_t *mem) {
     uint8_t *features = &token;
     uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
     uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
@@ -143,8 +143,43 @@ static int forward(uint8_t token, uint8_t *tm_outputs, uint8_t *mem) {
     return idx;
 }
 
-static float train_step(uint8_t token, uint8_t next_token) {
-    int idx = forward(token, tm_outputs);
+static float train(uint8_t token, uint8_t next_token) {
+    uint8_t *features = &token;
+    uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
+    uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
+    uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
+    int logits[VOCAB_SIZE];
+    for (int k = 0; k < VOCAB_SIZE; k++) {
+        int a = 0;
+        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern_3+k*MEM, tok, MEM);
+        for (int i = 0; i < EMBEDDING_DIM; i++) {
+            if(GET_BIT(r_clause_outputs,i)) {
+                a++;
+            }
+        }
+        logits[k] = a;
+    }
+    srand(time(NULL));
+    double probs[VOCAB_SIZE];
+    
+    double max_val = logits[0];
+    for (int i = 1; i < n; i++) {
+        if (logits[i] > max_val) {
+            max_val = logits[i];
+        }
+    }
+    
+    double sum = 0.0;
+    for (int i = 0; i < VOCAB_SIZE; i++) {
+        probs[i] = exp((double)(logits[i] - max_val));
+        sum += probs[i];
+    }
+    for (int i = 0; i < VOCAB_SIZE; i++) {
+        probs[i] /= sum;
+    }
+    float loss = 1 - probs[next_token];
+    
+    int idx = categorical_sample(probs, VOCAB_SIZE);
     float loss = -logf(fmaxf(logits[next_token], 1e-10f));
     return loss;
 }
@@ -197,7 +232,7 @@ int main(int argc, char **argv) {
                 uint8_t token = text[i];
                 uint8_t next_token = text[i + 1];
 
-                total_loss += train_step(token, next_token);
+                total_loss += train(token, next_token);
 
                 int predicted = sample_next(token);
                 if (predicted == next_token) correct++;
