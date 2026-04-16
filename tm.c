@@ -119,16 +119,23 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
             int c = 0;
             for (int i = 0; i < CLAUSE_FEATURES; i++) {
                 if (clause->pattern[i] = 1) {
-                    if (GET_BIT(features,i)) a += 1;
-                } else {
-                    if (!GET_BIT(features,i)) b += 1;
+                    if (GET_BIT(features,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
+                }
+                if (clause->pattern[i+CLAUSE_FEATURES] = 1) {
+                    if (!GET_BIT(features,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
                 }
             }
             c = abs(a - b);
-            if (a >= c) {
+            if (b < c) {
                 clause_outputs[k] = 1;
-            } else if (b >= c) {
-                clause_outputs[k] = -1;
             }
         }
         for (int k = 0; k < 128; k++) {
