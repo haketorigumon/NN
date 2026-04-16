@@ -38,34 +38,13 @@ typedef struct {
 Model model;
 
 static void init_model(void) {
-    srand(12345); // Fixed seed for reproducibility
+    srand(12345);
 
-    // Initialize embeddings with orthogonal initialization
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        for (int i = 0; i < EMBEDDING_DIM; i++) {
-            model.embedding[c][i] = ((float)rand() / RAND_MAX - 0.5f) * 0.1f;
-        }
-    }
-
-    // Initialize HTM clauses with balanced random patterns
-    for (int k = 0; k < HTM_CLAUSES; k++) {
-        for (int i = 0; i < CLAUSE_FEATURES; i++) {
-            int r = rand() % 100;
-            if (r < 40) model.clauses[k].pattern[i] = 0;  // Match 0
-            else if (r < 80) model.clauses[k].pattern[i] = 1; // Match 1
-            else model.clauses[k].pattern[i] = -1;           // Ignore
-        }
-        model.clauses[k].state = 128; // Middle state
-        model.clauses[k].weight = 1.0f;
-    }
-
-    // Initialize output weights
     for (int k = 0; k < CLAUSES; k++) {
-        for (int c = 0; c < VOCAB_SIZE; c++) {
-            model.output_weights[k][c] = ((float)rand() / RAND_MAX - 0.5f) * 0.01f;
+        for (int i = 0; i < CLAUSE_FEATURES; i++) {
+            if (rand() / RAND_MAX >= 1 / 2) pattern[i] = 1;
         }
     }
-    memset(model.output_bias, 0, sizeof(model.output_bias));
 }
 static int categorical_sample(const double* probs, int num_classes)
 {
@@ -201,9 +180,7 @@ int main(int argc, char **argv) {
     init_model();
 
     if (train_file) {
-        printf("HTM-SMDDS v4.0: Working HTM Language Model\n");
-        printf("========================================\n");
-
+        
         FILE *f = fopen(train_file, "rb");
         if (!f) {
             perror("Error opening training file");
@@ -226,8 +203,8 @@ int main(int argc, char **argv) {
             int correct = 0;
 
             for (long i = 0; i < len - 1; i++) {
-                int token = (unsigned char)text[i];
-                int next_token = (unsigned char)text[i + 1];
+                int token = (uint8_t)text[i];
+                int next_token = (uint8_t)text[i + 1];
 
                 total_loss += train_step(token, next_token);
 
