@@ -45,8 +45,23 @@ static int categorical_sample(const double* probs, int num_classes)
 {
     double r = (double)rand() / RAND_MAX;   // [0, 1) 随机数
     double cum = 0.0;
-    
+    double max_val = probs[0];
+    for (int i = 1; i < num_classes; i++) {
+        if (probs[i] > max_val) {
+            max_val = probs[i];
+        }
+    }
     for (int i = 0; i < num_classes; i++) {
+        s += max_val - probs[i];
+    }
+    s = s / num_classes;
+    for (int i = 0; i < num_classes; i++) {
+        if (probs[i] > s) {
+            a[k] = i;
+            k++;
+        }
+    }
+    for (int i = 0; i < k; i++) {
         cum += probs[i];
         if (r <= cum) {
             return i;
