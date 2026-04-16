@@ -43,7 +43,6 @@ static void init_model(void) {
 }
 static int categorical_sample(const double* probs, int num_classes)
 {
-    double r = (double)rand() / RAND_MAX;   // [0, 1) 随机数
     double cum = 0.0;
     double max_val = probs[0];
     for (int i = 1; i < num_classes; i++) {
@@ -51,18 +50,26 @@ static int categorical_sample(const double* probs, int num_classes)
             max_val = probs[i];
         }
     }
+    double s = 0.0;
     for (int i = 0; i < num_classes; i++) {
         s += max_val - probs[i];
     }
     s = s / num_classes;
+    double a[num_classes];
+    int k = 0.0;
     for (int i = 0; i < num_classes; i++) {
         if (probs[i] > s) {
             a[k] = i;
             k++;
         }
     }
+    double p = 0.0;
     for (int i = 0; i < k; i++) {
-        cum += probs[i];
+        p += probs[a[i]];
+    }
+    double r = (double)rand() / RAND_MAX * p;
+    for (int i = 0; i < k; i++) {
+        cum += probs[a[i]];
         if (r <= cum) {
             return i;
         }
