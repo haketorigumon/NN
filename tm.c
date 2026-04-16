@@ -67,7 +67,19 @@ static void init_model(void) {
     }
     memset(model.output_bias, 0, sizeof(model.output_bias));
 }
-
+static int categorical_sample(const double* probs, int num_classes)
+{
+    double r = (double)rand() / RAND_MAX;   // [0, 1) 随机数
+    double cum = 0.0;
+    
+    for (int i = 0; i < num_classes; i++) {
+        cum += probs[i];
+        if (r <= cum) {
+            return i;
+        }
+    }
+    return num_classes - 1;  // 防止浮点误差
+}
 
 static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause_size, size_t feature_size) {
     static uint8_t clause_outputs[(clause_size + 7) / 8] = {0};
@@ -101,7 +113,7 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
     uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
     uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
     uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
-    int thko[VOCAB_SIZE] = {0};
+    int logits[VOCAB_SIZE] = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
         uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3, tok, MEM);
@@ -110,9 +122,29 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                 a++;
             }
         }
-        thko[k] = a;
+        logits[k] = a;
+    }
+    srand(time(NULL));
+    double probs[5];
+    
+    // 1. 计算稳定 softmax
+    double max_val = logits[0];
+    for (int i = 1; i < n; i++) {
+        if (logits[i] > max_val) {
+            max_val = logits[i];
+        }
     }
     
+    double sum = 0.0;
+    for (int i = 0; i < VOCAB_SIZE; i++) {
+        probs[i] = exp(logits[i] - max_val);
+        sum += probs[i];
+    }
+    for (int i = 0; i < VOCAB_SIZE; i++) {
+        probs[i] /= sum;
+    }
+    
+    int idx = categorical_sample(probs, VOCAB_SIZE);
     if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
         SET_BIT(tm_outputs, r);
     }
