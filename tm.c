@@ -25,17 +25,12 @@ uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
 typedef struct {
-    int8_t  pattern[CLAUSE_FEATURES];  // Feature pattern to match (-1 ignore, 0/1 required)
-    uint8_t state;                     // Tsetlin automaton state
-    float   weight;                    // Clause weight
+    uint8_t  pattern[CLAUSE_FEATURES];
+    uint8_t pattern_2[MEM];
+    uint8_t pattern_3[MEM];
 } Clause;
 
-typedef struct {
-    float      embedding[VOCAB_SIZE][EMBEDDING_DIM];
-    Clause  clauses[CLAUSES];
-} Model;
-
-Model model;
+Clause clause;
 
 static void init_model(void) {
     srand(12345);
@@ -90,12 +85,12 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
 static int forward(uint8_t token, uint8_t *tm_outputs, uint8_t *mem) {
     uint8_t *features = &token;
     uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
-    uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
+    uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
     uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
     int logits[VOCAB_SIZE];
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
-        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3+k*MEM, tok, MEM);
+        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern_3+k*MEM, tok, MEM);
         for (int i = 0; i < EMBEDDING_DIM; i++) {
             if(GET_BIT(r_clause_outputs,i)) {
                 a++;
