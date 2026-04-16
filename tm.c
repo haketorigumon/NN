@@ -10,7 +10,9 @@
 #define VOCAB_SIZE 256
 #define EMBEDDING_DIM 16
 #define CLAUSES 256
+#define META_CLAUSES 256
 #define CLAUSE_FEATURES 8
+#define META_CLAUSE_FEATURES CLAUSES * 2
 #define TMS CLAUSE_FEATURES
 
 #define BIT_ARRAY_SIZE 100
@@ -110,13 +112,13 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
     unsigned char features[(CLAUSE_FEATURES + 7) / 8] = {0};
 
     int clause_outputs[CLAUSES] = {0};
+    int meta_clause_outputs[META_CLAUSES] = {0};
     
     for (int r = 0; r < TMS; r++) {
         int aa = 0;
         for (int k = 0; k < CLAUSES; k++) {
             int a = 0;
             int b = 0;
-            int c = 0;
             for (int i = 0; i < CLAUSE_FEATURES; i++) {
                 if (clause->pattern[i] = 1) {
                     if (GET_BIT(features,i)) {
@@ -133,21 +135,39 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
                     }
                 }
             }
-            c = abs(a - b);
-            if (b < c) {
+            if (b < abs(a - b)) {
                 clause_outputs[k] = 1;
             }
         }
-        for (int k = 0; k < 128; k++) {
+        for (int k = 0; k < META_CLAUSES * META_CLAUSE_FEATURES; k++) {
+            int a = 0;
+            int b = 0;
+            for (int i = 0; i < MEM; i++) {
+                if (meta_clause->pattern[i] = 1) {
+                    if (GET_BIT(mem,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
+                }
+                if (clause->pattern[i+MEM] = 1) {
+                    if (!GET_BIT(mem,i)) {
+                        a += 1;
+                    } else {
+                        b += 1;
+                    }
+                }
+            }
+            if (b < abs(a - b)) {
+                meta_clause_outputs[k] = 1;
+            }
+        }
+        for (int k = 0; k < META_CLAUSES; k++) {
             for (int i = 0; i < CLAUSES; k++) {
                 if (mem[k][i] == 1) {
                     if (clause_outputs[i] == 1) {
-                        outputs[i] = 1;
                         a += 1;
-                    }
-                } else {
-                    if (clause_outputs[i] == -1) {
-                        outputs[i] = -1;
+                    } else {
                         b += 1;
                     }
                 }
