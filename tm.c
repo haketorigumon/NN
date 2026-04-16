@@ -17,7 +17,7 @@
 #define TMS CLAUSE_FEATURES
 
 #define BIT_ARRAY_SIZE 100
-unsigned char bit_array[(BIT_ARRAY_SIZE + 7) / 8];
+uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
 #define CLEAR_BIT(arr, n)   ((arr)[(n)/8] &= ~(1U << ((n)%8)))
@@ -69,8 +69,8 @@ static void init_model(void) {
 }
 
 
-static unsigned char *clause(const unsigned char *features, unsigned char *pattern) {
-    unsigned char clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+static uint8_t *clause(const unsigned char *features, unsigned char *pattern) {
+    uint8_t clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
     for (int k = 0; k < CLAUSES; k++) {
             int a = 0;
             int b = 0;
@@ -97,10 +97,10 @@ static unsigned char *clause(const unsigned char *features, unsigned char *patte
     return clause_outputs;
 }
 static void forward(int token, unsigned char *tm_outputs, *mem) {
-    unsigned char features[(CLAUSE_FEATURES + 7) / 8] = {0};
-    unsigned char clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
-    unsigned char meta_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
-    unsigned char hyper_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    uint8_t features[(CLAUSE_FEATURES + 7) / 8] = {0};
+    uint8_t clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    uint8_t meta_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    uint8_t hyper_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
     
     for (int r = 0; r < TMS; r++) {
         int aa = 0;
