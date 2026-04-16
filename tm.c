@@ -97,19 +97,24 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
     return clause_outputs;
 }
 static void forward(int token, unsigned char *tm_outputs, *mem) {
-    uint8_t features[(CLAUSE_FEATURES + 7) / 8] = {0};
-    uint8_t clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
-    uint8_t meta_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
-    uint8_t hyper_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
     
-    for (int r = 0; r < TMS; r++) {
-        uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
-        uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
-        uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
-        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3, MEM, CLAUSES);
-        if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
-            SET_BIT(tm_outputs, r);
+    uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
+    uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
+    uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
+    int thko[VOCAB_SIZE] = {0};
+    for (int k = 0; k < VOCAB_SIZE; k++) {
+        int a = 0;
+        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3, tok, MEM);
+        for (int i = 0; i < EMBEDDING_DIM; i++) {
+            if(GET_BIT(r_clause_outputs,i)) {
+                a++;
+            }
         }
+        thko[k] = a;
+    }
+    
+    if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
+        SET_BIT(tm_outputs, r);
     }
 }
 
