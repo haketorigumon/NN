@@ -103,75 +103,10 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
     uint8_t hyper_clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
     
     for (int r = 0; r < TMS; r++) {
-        int aa = 0;
-        for (int k = 0; k < CLAUSES; k++) {
-            int a = 0;
-            int b = 0;
-            for (int i = 0; i < CLAUSE_FEATURES; i++) {
-                if (clause->pattern[i] = 1) {
-                    if (GET_BIT(features,i)) {
-                        a += 1;
-                    } else {
-                        b += 1;
-                    }
-                }
-                if (clause->pattern[i+CLAUSE_FEATURES] = 1) {
-                    if (!GET_BIT(features,i)) {
-                        a += 1;
-                    } else {
-                        b += 1;
-                    }
-                }
-            }
-            if (b < abs(a - b)) {
-                SET_BIT(clause_outputs,k);
-            }
-        }
-        for (int k = 0; k < META_CLAUSES * META_CLAUSE_FEATURES; k++) {
-            int a = 0;
-            int b = 0;
-            for (int i = 0; i < MEM; i++) {
-                if (meta_clause->pattern[i] = 1) {
-                    if (GET_BIT(mem,i)) {
-                        a += 1;
-                    } else {
-                        b += 1;
-                    }
-                }
-                if (clause->pattern[i+MEM] = 1) {
-                    if (!GET_BIT(mem,i)) {
-                        a += 1;
-                    } else {
-                        b += 1;
-                    }
-                }
-            }
-            if (b < abs(a - b)) {
-                SET_BIT(meta_clause_outputs,k);
-            }
-        }
-        for (int k = 0; k < META_CLAUSES; k++) {
-            for (int i = 0; i < CLAUSES; k++) {
-                if (meta_clause_outputs[k*META_CLAUSES+i] == 1) {
-                    if (GET_BIT(clause_outputs,i)) {
-                        a += 1;
-                    } else {
-                        b += 1;
-                    }
-                }
-                if (meta_clause_outputs[META_CLAUSES+k*META_CLAUSES+i] == 1) {
-                    if (!GET_BIT(clause_outputs,i)) {
-                        a += 1;
-                    } else {
-                        b += 1;
-                    }
-                }
-            }
-            c = abs(a - b);
-            if (b < c) {
-                SET_BIT(hyper_clause_outputs,k);
-            }
-        }
+        uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
+        uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
+        uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
+        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3, MEM, CLAUSES);
         if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
             SET_BIT(tm_outputs, r);
         }
