@@ -69,24 +69,24 @@ static void init_model(void) {
 }
 
 
-static uint8_t *clause(const uint8_t *features, uint8_t *pattern, size_t clause_size, size_t feature_size) {
-    static uint8_t clause_outputs[(feature_size + 7) / 8] = {0};
+static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause_size, size_t feature_size) {
+    static uint8_t clause_outputs[(clause_size + 7) / 8] = {0};
     for (int k = 0; k < clause_size; k++) {
             int a = 0;
             int b = 0;
             for (int i = 0; i < feature_size; i++) {
-                if (GET_BIT(pattern,i)) {
+                if (GET_BIT(pattern,k*feature_size+i)) {
                     if (GET_BIT(features,i)) {
                         a += 1;
                     } else {
                         b += 1;
                     }
                 }
-                if (GET_BIT(features,i+feature_size)) {
-                    if (!GET_BIT(features,i)) {
-                        a += 1;
-                    } else {
+                if (GET_BIT(pattern,k*feature_size+i+clause_size*feature_size)) {
+                    if (GET_BIT(features,i)) {
                         b += 1;
+                    } else {
+                        a += 1;
                     }
                 }
             }
