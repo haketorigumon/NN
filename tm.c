@@ -122,33 +122,8 @@ static int forward(uint8_t token, uint8_t *tm_outputs, uint8_t *mem) {
 }
 
 static float train_step(uint8_t token, uint8_t next_token) {
-    unsigned char tm_outputs[(TMS + 7) / 8] = {0};
-    forward(token, tm_outputs);
-
-    // Calculate loss
+    int idx = forward(token, tm_outputs);
     float loss = -logf(fmaxf(logits[next_token], 1e-10f));
-
-    // Calculate proper reward signal based on actual prediction accuracy
-    float reward = 0.0f;
-
-    // Find predicted token
-    float max_prob = 0.0f;
-    int predicted = 0;
-    for (int c = 0; c < VOCAB_SIZE; c++) {
-        if (logits[c] > max_prob) {
-            max_prob = logits[c];
-            predicted = c;
-        }
-    }
-
-    if (predicted == next_token) {
-        reward = 2.0f; // Perfect prediction
-    } else if (logits[next_token] > max_prob * 0.5f) {
-        reward = 1.0f; // Good guess
-    } else {
-        reward = -1.0f; // Wrong
-    }
-
     return loss;
 }
 
