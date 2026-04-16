@@ -70,7 +70,7 @@ static void init_model(void) {
 
 
 static uint8_t *clause(const unsigned char *features, unsigned char *pattern) {
-    uint8_t clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
+    static uint8_t clause_outputs[(CLAUSE_FEATURES + 7) / 8] = {0};
     for (int k = 0; k < CLAUSES; k++) {
             int a = 0;
             int b = 0;
