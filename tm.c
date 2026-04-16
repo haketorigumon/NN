@@ -60,7 +60,7 @@ static void init_model(void) {
     }
 
     // Initialize output weights
-    for (int k = 0; k < HTM_CLAUSES; k++) {
+    for (int k = 0; k < CLAUSES; k++) {
         for (int c = 0; c < VOCAB_SIZE; c++) {
             model.output_weights[k][c] = ((float)rand() / RAND_MAX - 0.5f) * 0.01f;
         }
@@ -108,15 +108,15 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
     }
     return clause_outputs;
 }
-static int forward(int token, unsigned char *tm_outputs, *mem) {
+static int forward(int token, uint8_t *tm_outputs, uint8_t *mem) {
     
     uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
     uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
     uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
-    int logits[VOCAB_SIZE] = {0};
+    int logits[VOCAB_SIZE];
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
-        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3, tok, MEM);
+        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern3+k*MEM, tok, MEM);
         for (int i = 0; i < EMBEDDING_DIM; i++) {
             if(GET_BIT(r_clause_outputs,i)) {
                 a++;
