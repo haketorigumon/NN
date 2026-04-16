@@ -87,8 +87,8 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
     }
     return clause_outputs;
 }
-static int forward(int token, uint8_t *tm_outputs, uint8_t *mem) {
-    
+static int forward(uint8_t token, uint8_t *tm_outputs, uint8_t *mem) {
+    uint8_t *features = &token;
     uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
     uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
     uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
@@ -126,7 +126,7 @@ static int forward(int token, uint8_t *tm_outputs, uint8_t *mem) {
     return idx;
 }
 
-static float train_step(int token, int next_token) {
+static float train_step(uint8_t token, uint8_t next_token) {
     unsigned char tm_outputs[(TMS + 7) / 8] = {0};
     forward(token, tm_outputs);
 
@@ -190,21 +190,20 @@ int main(int argc, char **argv) {
         fseek(f, 0, SEEK_END);
         long len = ftell(f);
         fseek(f, 0, SEEK_SET);
-        char *text = malloc(len + 1);
+        uint8_t *text = malloc(len + 1);
         fread(text, 1, len, f);
         fclose(f);
         text[len] = '\0';
 
         printf("Training on %ld characters\n\n", len);
 
-        // Training loop
         for (int epoch = 0; epoch < epochs; epoch++) {
             float total_loss = 0.0f;
             int correct = 0;
 
             for (long i = 0; i < len - 1; i++) {
-                int token = (uint8_t)text[i];
-                int next_token = (uint8_t)text[i + 1];
+                uint8_t token = text[i];
+                uint8_t next_token = text[i + 1];
 
                 total_loss += train_step(token, next_token);
 
