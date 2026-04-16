@@ -108,7 +108,7 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
     }
     return clause_outputs;
 }
-static void forward(int token, unsigned char *tm_outputs, *mem) {
+static int forward(int token, unsigned char *tm_outputs, *mem) {
     
     uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
     uint8_t *meta_clause_outputs = clauses(mem, pattern2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
@@ -125,9 +125,8 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
         logits[k] = a;
     }
     srand(time(NULL));
-    double probs[5];
+    double probs[VOCAB_SIZE];
     
-    // 1. 计算稳定 softmax
     double max_val = logits[0];
     for (int i = 1; i < n; i++) {
         if (logits[i] > max_val) {
@@ -137,7 +136,7 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
     
     double sum = 0.0;
     for (int i = 0; i < VOCAB_SIZE; i++) {
-        probs[i] = exp(logits[i] - max_val);
+        probs[i] = exp((double)(logits[i] - max_val));
         sum += probs[i];
     }
     for (int i = 0; i < VOCAB_SIZE; i++) {
@@ -145,9 +144,7 @@ static void forward(int token, unsigned char *tm_outputs, *mem) {
     }
     
     int idx = categorical_sample(probs, VOCAB_SIZE);
-    if ((float)rand() / RAND_MAX < (1.0f / (1.0f + expf(-aa)))) {
-        SET_BIT(tm_outputs, r);
-    }
+    return idx;
 }
 
 static float train_step(int token, int next_token) {
