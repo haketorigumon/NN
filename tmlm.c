@@ -32,14 +32,6 @@ uint8_t pattern_3[VOCAB_SIZE * OUT_PATTERN_BYTES_PER_CLASS];
 uint8_t hyper_pattern[(MEM * CLAUSES * 2 + 7) / 8];                
 uint8_t mem[(MEM + 7) / 8] = {0};                                  
 
-typedef struct {
-    uint8_t  pattern[CLAUSE_FEATURES];
-    uint8_t pattern_2[MEM];
-} Clause;
-
-Clause clause;
-
-/* ==================== 权重文件保存/读取函数（新增） ==================== */
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
 static void save_weights(const char *filename) {
@@ -53,13 +45,13 @@ static void save_weights(const char *filename) {
     fwrite(pattern_3,     1, sizeof(pattern_3),     fp);
     fwrite(hyper_pattern, 1, sizeof(hyper_pattern), fp);
     fclose(fp);
-    printf("✅ 权重已保存到文件：%s\n", filename);
+    printf("权重已保存到文件：%s\n", filename);
 }
 
 static int load_weights(const char *filename) {
     FILE *fp = fopen(filename, "rb");
     if (!fp) {
-        printf("ℹ️  权重文件 %s 不存在，将随机初始化模型...\n", filename);
+        printf("权重文件 %s 不存在，将随机初始化模型...\n", filename);
         return 0;
     }
     size_t r1 = fread(pattern,       1, sizeof(pattern),       fp);
@@ -70,10 +62,10 @@ static int load_weights(const char *filename) {
 
     if (r1 == sizeof(pattern) && r2 == sizeof(pattern_2) &&
         r3 == sizeof(pattern_3) && r4 == sizeof(hyper_pattern)) {
-        printf("✅ 权重已从文件 %s 成功加载\n", filename);
+        printf("权重已从文件 %s 成功加载\n", filename);
         return 1;
     } else {
-        printf("⚠️  权重文件 %s 损坏或大小不匹配，将随机初始化...\n", filename);
+        printf("权重文件 %s 损坏或大小不匹配，将随机初始化...\n", filename);
         return 0;
     }
 }
