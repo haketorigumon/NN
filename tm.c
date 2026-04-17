@@ -77,8 +77,7 @@ static int categorical_sample(const double* probs, int num_classes)
     return num_classes - 1;
 }
 
-static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause_size, size_t feature_size) {
-    static uint8_t clause_outputs[(clause_size + 7) / 8] = {0};
+static void clauses(uint8_t *clause_outputs, const uint8_t *features, uint8_t *pattern, size_t clause_size, size_t feature_size) {
     for (int k = 0; k < clause_size; k++) {
             int a = 0;
             int b = 0;
@@ -102,14 +101,17 @@ static uint8_t *clauses(const uint8_t *features, uint8_t *pattern, size_t clause
                 SET_BIT(clause_outputs,k);
             }
     }
-    return clause_outputs;
 }
 static int forward(uint8_t token, uint8_t *mem) {
     uint8_t *features = &token;
-    uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
-    uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
-    uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
+    uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
+    clauses(clause_outputs, features, pattern, CLAUSES, CLAUSE_FEATURES);
+    uint8_t meta_clause_outputs[(META_CLAUSES * CLAUSE_FEATURES * 2 + 7) / 8] = {0};
+    clauses(meta_clause_outputs, mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
+    uint8_t hyper_clause_outputs[(MEM + 7) / 8] = {0};
+    clauses(hyper_clause_outputs, clause_outputs, meta_clause_outputs, MEM, CLAUSES);
     int logits[VOCAB_SIZE];
+    
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
         uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern_3+k*MEM, tok, MEM);
@@ -180,6 +182,9 @@ static float train(uint8_t token, uint8_t next_token) {
     float loss = 1 - probs[next_token];
     
     int idx = categorical_sample(probs, VOCAB_SIZE);
+    if (next_token != idx) {
+        a;
+    }
     float loss = -logf(fmaxf(logits[next_token], 1e-10f));
     return loss;
 }
