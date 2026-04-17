@@ -8,12 +8,10 @@
 #include <stdint.h>
 
 #define VOCAB_SIZE 256
-#define EMBEDDING_DIM 16
 #define CLAUSES 256
 #define OUT_CLAUSES 256
 #define META_CLAUSES 256
 #define MEM 256
-#define CLAUSE_FEATURES 8
 
 #define OUT_PATTERN_BYTES_PER_CLASS ((OUT_CLAUSES * MEM * 2 + 7) / 8)
 
@@ -25,22 +23,21 @@ uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(MEM ** 2 * 2 + 7) / 8];              
+uint8_t pattern[(MEM * MEM * 2 + 7) / 8];              
 uint8_t pattern_2[VOCAB_SIZE * MEM * OUT_CLAUSES];          
 uint8_t mem[(MEM + 7) / 8] = {0};                                  
 
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
+/* ==================== 保存 / 加载权重 ==================== */
 static void save_weights(const char *filename) {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
         perror("保存权重文件失败");
         return;
     }
-    fwrite(pattern,       1, sizeof(pattern),       fp);
-    fwrite(pattern_2,     1, sizeof(pattern_2),     fp);
-    fwrite(pattern_3,     1, sizeof(pattern_3),     fp);
-    fwrite(hyper_pattern, 1, sizeof(hyper_pattern), fp);
+    fwrite(pattern,   1, sizeof(pattern),   fp);
+    fwrite(pattern_2, 1, sizeof(pattern_2), fp);
     fclose(fp);
     printf("权重已保存到文件：%s\n", filename);
 }
@@ -51,14 +48,11 @@ static int load_weights(const char *filename) {
         printf("权重文件 %s 不存在，将随机初始化模型...\n", filename);
         return 0;
     }
-    size_t r1 = fread(pattern,       1, sizeof(pattern),       fp);
-    size_t r2 = fread(pattern_2,     1, sizeof(pattern_2),     fp);
-    size_t r3 = fread(pattern_3,     1, sizeof(pattern_3),     fp);
-    size_t r4 = fread(hyper_pattern, 1, sizeof(hyper_pattern), fp);
+    size_t r1 = fread(pattern,   1, sizeof(pattern),   fp);
+    size_t r2 = fread(pattern_2, 1, sizeof(pattern_2), fp);
     fclose(fp);
 
-    if (r1 == sizeof(pattern) && r2 == sizeof(pattern_2) &&
-        r3 == sizeof(pattern_3) && r4 == sizeof(hyper_pattern)) {
+    if (r1 == sizeof(pattern) && r2 == sizeof(pattern_2)) {
         printf("权重已从文件 %s 成功加载\n", filename);
         return 1;
     } else {
@@ -71,12 +65,11 @@ static int load_weights(const char *filename) {
 static void init_model(void) {
     srand(12345);
 
-    for (size_t i = 0; i < sizeof(pattern); i++)       pattern[i]       = (uint8_t)(rand() & 0xFF);
-    for (size_t i = 0; i < sizeof(pattern_2); i++)     pattern_2[i]     = (uint8_t)(rand() & 0xFF);
-    for (size_t i = 0; i < sizeof(pattern_3); i++)     pattern_3[i]     = (uint8_t)(rand() & 0xFF);
-    for (size_t i = 0; i < sizeof(hyper_pattern); i++) hyper_pattern[i] = (uint8_t)(rand() & 0xFF);
+    for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
+    for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
 }
 
+/* ==================== 采样函数 ==================== */
 static int categorical_sample(const double* probs, int num_classes) {
     double cum = 0.0;
     double max_val = probs[0];
@@ -116,6 +109,7 @@ static int categorical_sample(const double* probs, int num_classes) {
     return a[k - 1];
 }
 
+/* ==================== 子句计算核心 ==================== */
 static void clauses(uint8_t *clause_outputs, const uint8_t *features,
                     uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
     memset(clause_outputs, 0, (clause_size + 7) / 8);
@@ -156,20 +150,30 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
+/* ==================== 前向推理（已按你的要求修复） ==================== */
 static int forward(uint8_t token) {
-    uint8_t features[1] = {token};
+    /* 1. 把当前 token 以 one-hot 形式融入当前 mem（上下文 + 当前输入） */
+    uint8_t features[(MEM + 7) / 8];
+    memcpy(features, mem, sizeof(mem));
+    SET_BIT(features, token);                     // 当前 token 加入状态
 
+    /* 2. 第一层：从（mem + token）提取 clause_outputs */
     uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
-    clauses(clause_outputs, mem, pattern, CLAUSES, MEM);
+    clauses(clause_outputs, features, pattern, CLAUSES, MEM);
 
+    /* 3. 元层（meta layer）：输出存入 meta_clause_outputs */
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
-    clauses(meta_clause_outputs, features, clause_outputs, MEM, VOCAB_SIZE);
+    clauses(meta_clause_outputs, clause_outputs, pattern, META_CLAUSES, CLAUSES);
 
+    /* 4. mem = 元层输出（你的核心要求） */
+    memcpy(mem, meta_clause_outputs, sizeof(meta_clause_outputs));
+
+    /* 5. 输出层：使用 mem（即元层输出）作为输入特征 */
     int logits[VOCAB_SIZE] = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t out_clause_outputs[(OUT_CLAUSES + 7) / 8] = {0};
         uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(out_clause_outputs, meta_clause_outputs, class_pattern, OUT_CLAUSES, MEM);
+        clauses_2(out_clause_outputs, mem, class_pattern, OUT_CLAUSES, MEM);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
@@ -178,6 +182,7 @@ static int forward(uint8_t token) {
         logits[k] = a;
     }
 
+    /* Softmax + 采样 */
     double probs[VOCAB_SIZE];
     double max_val = logits[0];
     for (int i = 1; i < VOCAB_SIZE; i++) {
@@ -200,15 +205,25 @@ static int sample_next(uint8_t current) {
     return forward(current);
 }
 
+/* ==================== 训练（同步修复） ==================== */
 static float train(uint8_t token, uint8_t next_token) {
-    uint8_t features[1] = {token};
+    /* 1. 同样把 token 融入 mem */
+    uint8_t features[(MEM + 7) / 8];
+    memcpy(features, mem, sizeof(mem));
+    SET_BIT(features, token);
 
+    /* 2. 第一层 */
     uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
-    clauses(clause_outputs, mem, pattern, CLAUSES, MEM);
+    clauses(clause_outputs, features, pattern, CLAUSES, MEM);
 
+    /* 3. 元层 */
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
-    clauses(meta_clause_outputs, features, clause_outputs, MEM, VOCAB_SIZE);
+    clauses(meta_clause_outputs, clause_outputs, pattern, META_CLAUSES, CLAUSES);
 
+    /* 4. 更新 mem = 元层输出 */
+    memcpy(mem, meta_clause_outputs, sizeof(meta_clause_outputs));
+
+    /* 5. 输出层（使用 mem） */
     size_t out_bytes = (OUT_CLAUSES + 7) / 8;
     uint8_t *out_clause_outputs = (uint8_t *)malloc(VOCAB_SIZE * out_bytes);
     if (out_clause_outputs == NULL) {
@@ -221,7 +236,7 @@ static float train(uint8_t token, uint8_t next_token) {
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t *class_out = out_clause_outputs + (size_t)k * out_bytes;
         uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(class_out, meta_clause_outputs, class_pattern, OUT_CLAUSES, MEM);
+        clauses_2(class_out, mem, class_pattern, OUT_CLAUSES, MEM);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
@@ -244,14 +259,15 @@ static float train(uint8_t token, uint8_t next_token) {
 
     int idx = categorical_sample(probs, VOCAB_SIZE);
 
+    /* 训练更新：直接修改 pattern_2（原来是无用的 pattern_3） */
     if (next_token != idx) {
-        uint8_t *correct_pattern = pattern_3 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
+        uint8_t *correct_pattern = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
         for (int f = 0; f < 16; f++) {
             size_t bit_pos = (size_t)rand() % (OUT_CLAUSES * MEM * 2);
             TOGGLE_BIT(correct_pattern, bit_pos);
         }
 
-        uint8_t *wrong_pattern = pattern_3 + (size_t)idx * OUT_PATTERN_BYTES_PER_CLASS;
+        uint8_t *wrong_pattern = pattern_2 + (size_t)idx * OUT_PATTERN_BYTES_PER_CLASS;
         for (int f = 0; f < 8; f++) {
             size_t bit_pos = (size_t)rand() % (OUT_CLAUSES * MEM * 2);
             TOGGLE_BIT(wrong_pattern, bit_pos);
@@ -265,7 +281,7 @@ static float train(uint8_t token, uint8_t next_token) {
     return loss;
 }
 
-/* ==================== 主函数（新增权重文件支持） ==================== */
+/* ==================== 主函数 ==================== */
 int main(int argc, char **argv) {
     const char *train_file = NULL;
     const char *seed_text = "a";
@@ -273,7 +289,7 @@ int main(int argc, char **argv) {
     int epochs = 20;
     int gen_tokens = 50;
 
-    /* 命令行参数解析（新增 --weights / -w） */
+    /* 命令行参数解析 */
     for (int i = 1; i < argc; i++) {
         if (i + 1 < argc) {
             if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
@@ -290,7 +306,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* 权重加载逻辑：文件存在 → 读取；不存在 → 随机初始化 */
+    /* 加载权重或随机初始化 */
     int loaded = load_weights(weights_file);
     if (!loaded) {
         init_model();
@@ -349,7 +365,6 @@ int main(int argc, char **argv) {
         free(text);
         printf("\nTraining complete.\n");
 
-        /* 训练结束后自动保存权重 */
         save_weights(weights_file);
     }
 
