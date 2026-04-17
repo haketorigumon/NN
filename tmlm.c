@@ -80,7 +80,6 @@ static void init_model(void) {
     for (size_t i = 0; i < sizeof(hyper_pattern); i++) hyper_pattern[i] = (uint8_t)(rand() & 0xFF);
 }
 
-/* ==================== 其余函数保持不变（categorical_sample、clauses、forward、sample_next、train） ==================== */
 static int categorical_sample(const double* probs, int num_classes) {
     double cum = 0.0;
     double max_val = probs[0];
@@ -134,6 +133,24 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
             if (GET_BIT(pattern_ptr, k * feature_size + i + clause_size * feature_size)) {
                 if (GET_BIT(features, i)) b++;
                 else a++;
+            }
+        }
+        if (b < abs(a - b)) {
+            SET_BIT(clause_outputs, k);
+        }
+    }
+}
+
+static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
+                    uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
+    memset(clause_outputs, 0, (clause_size + 7) / 8);
+
+    for (size_t k = 0; k < clause_size; k++) {
+        int a = 0, b = 0;
+        for (size_t i = 0; i < feature_size; i++) {
+            if (GET_BIT(pattern_ptr, k * feature_size + i)) {
+                if (GET_BIT(features, i)) a++;
+                else b++;
             }
         }
         if (b < abs(a - b)) {
