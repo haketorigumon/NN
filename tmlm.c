@@ -247,24 +247,30 @@ static float train(uint8_t token, uint8_t next_token) {
 
     int idx = categorical_sample(probs, VOCAB_SIZE);
 
-    /* ==================== 误差驱动更新（按原代码思路补全） ==================== */
     if (next_token != idx) {
-        float p = 1.0f - (float)probs[next_token];   /* 越错越要更新的概率越高 */
+        float p = 1.0f - (float)probs[next_token];
 
         uint8_t *correct_class_out = out_clause_outputs + (size_t)next_token * out_bytes;
         uint8_t *correct_pattern   = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
 
         for (int f = 0; f < OUT_CLAUSES; f++) {
-            /* 如果正确类别的第 f 个输出子句没有被激活 */
             if (!GET_BIT(correct_class_out, f)) {
                 for (int i = 0; i < META_CLAUSES; i++) {
-                    /* 该 literal 在 pattern_2 中被选中，但 meta_clause 未激活 → 不匹配 */
                     if (GET_BIT(correct_pattern, f * META_CLAUSES + i)) {
                         if (!GET_BIT(meta_clause_outputs, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 TOGGLE_BIT(correct_pattern, f * META_CLAUSES + i);
+                            } else {
+                                for (int k = 0; k < VOCAB_SIZE; k++) {
+                                    if (GET_BIT(clause_outputs + i * VOCAB_SIZE, k)) {
+                                        if (!GET_BIT(features, k)) {
+                                            for (int h = 0; h < META_CLAUSES; h++) {
+                                                if (GET_BIT(pattern, h))
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            /* else 分支原代码未完成，这里按 Tsetlin Machine 典型做法仅做概率翻转 */
                         }
                     }
                 }
