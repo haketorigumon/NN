@@ -152,15 +152,16 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
     uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
     int logits[VOCAB_SIZE];
-    uint8_t *r_clause_outputs = malloc((size_t)VOCAB_SIZE * OUT_CLAUSES);
+    uint8_t *out_clause_outputs = malloc((size_t)(VOCAB_SIZE * OUT_CLAUSES));
     if (r_clause_outputs == NULL) {
-        perror("malloc for r_clause_outputs failed");
+        perror("malloc for out_clause_outputs failed");
     }
+    *out_clause_outputs = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
-        clauses(r_clause_outputs + (size_t)k * OUT_CLAUSES, hyper_clause_outputs, pattern_3+k*MEM, OUT_CLAUSES, MEM);
-        for (int i = 0; i < EMBEDDING_DIM; i++) {
-            if(GET_BIT(r_clause_outputs,i)) {
+        clauses(out_clause_outputs + (size_t)k * OUT_CLAUSES, hyper_clause_outputs, pattern_3+k*MEM, OUT_CLAUSES, MEM);
+        for (int i = 0; i < OUT_CLAUSES; i++) {
+            if(GET_BIT(out_clause_outputs,i)) {
                 a++;
             }
         }
@@ -184,11 +185,19 @@ static float train(uint8_t token, uint8_t next_token) {
     for (int i = 0; i < VOCAB_SIZE; i++) {
         probs[i] /= sum;
     }
-    float loss = 1 - probs[next_token];
     
     int idx = categorical_sample(probs, VOCAB_SIZE);
     if (next_token != idx) {
-        a;
+        float loss = 1 - probs[next_token];
+        for (int i = 0; i < OUT_CLAUSES; i++) {
+            if (!GET_BIT(out_clause_outputs + (size_t)(next_token * OUT_CLAUSES),i)) {
+                for (int k = 0; k < MEM; k++) {
+                    if (!GET_BIT(out_clause_outputs + (size_t)(next_token * OUT_CLAUSES),i)) {
+                        a;
+                    }
+                }
+            }
+        }
     }
     float loss = -logf(fmaxf(logits[next_token], 1e-10f));
     return loss;
