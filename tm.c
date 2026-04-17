@@ -10,6 +10,7 @@
 #define VOCAB_SIZE 256
 #define EMBEDDING_DIM 16
 #define CLAUSES 256
+#define OUT_CLAUSES 256
 #define META_CLAUSES 256
 #define MEM 256
 #define CLAUSE_FEATURES 8
@@ -151,9 +152,13 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
     uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
     int logits[VOCAB_SIZE];
+    uint8_t *r_clause_outputs = malloc((size_t)VOCAB_SIZE * OUT_CLAUSES);
+    if (r_clause_outputs == NULL) {
+        perror("malloc for r_clause_outputs failed");
+    }
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
-        uint8_t *r_clause_outputs = clauses(hyper_clause_outputs, pattern_3+k*MEM, tok, MEM);
+        clauses(r_clause_outputs + (size_t)k * OUT_CLAUSES, hyper_clause_outputs, pattern_3+k*MEM, OUT_CLAUSES, MEM);
         for (int i = 0; i < EMBEDDING_DIM; i++) {
             if(GET_BIT(r_clause_outputs,i)) {
                 a++;
