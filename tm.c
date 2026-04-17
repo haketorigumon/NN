@@ -222,7 +222,35 @@ int main(int argc, char **argv) {
         }
     }
     }
+    FILE *fp = fopen("w.w", "rb");
 
+    if (fp == NULL) {
+        fp = fopen(filename, "wb");
+        if (fp == NULL) {
+            perror("创建文件失败");
+            return -1;
+        }
+        size_t written = fwrite(clause, 1, length, fp);
+        fclose(fp);
+
+        if (read_bytes != length) {
+            fprintf(stderr, "读取不完整！文件大小 %zu 字节，请求读取 %zu 字节\n", 
+                    read_bytes, length);
+            // 可根据需要决定是否返回错误，这里我们仍返回已读取的内容
+        }
+
+        printf("文件已存在，成功读取 %zu 字节\n", read_bytes);
+        return 0;
+    }
+
+
+    size_t written = fwrite(data, 1, length, fp);
+    fclose(fp);
+
+    if (written != length) {
+        fprintf(stderr, "写入不完整！预期 %zu 字节，实际 %zu\n", length, written);
+        return -1;
+    }
     init_model();
 
     if (train_file) {
