@@ -162,7 +162,7 @@ static int forward(uint8_t token) {
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t out_clause_outputs[(OUT_CLAUSES + 7) / 8] = {0};
         uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(out_clause_outputs, mem, class_pattern, OUT_CLAUSES, MEM);
+        clauses_2(out_clause_outputs, meta_clause_outputs, class_pattern, OUT_CLAUSES, META_CLAUSES);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
@@ -219,7 +219,7 @@ static float train(uint8_t token, uint8_t next_token) {
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
-            if (GET_BIT(class_out, i)) a++;
+            if (GET_BIT(class_out + (size_t)k * out_bytes, i)) a++;
         }
         logits[k] = a;
     }
@@ -239,24 +239,25 @@ static float train(uint8_t token, uint8_t next_token) {
     int idx = categorical_sample(probs, VOCAB_SIZE);
 
     if (next_token != idx) {
-        uint8_t *correct_pattern = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
-        for (int f = 0; f < 16; f++) {
-            size_t bit_pos = (size_t)rand() % (OUT_CLAUSES * MEM * 2);
-            TOGGLE_BIT(correct_pattern, bit_pos);
-        }
-
-        uint8_t *wrong_pattern = pattern_2 + (size_t)idx * OUT_PATTERN_BYTES_PER_CLASS;
-        for (int f = 0; f < 8; f++) {
-            size_t bit_pos = (size_t)rand() % (OUT_CLAUSES * MEM * 2);
-            TOGGLE_BIT(wrong_pattern, bit_pos);
+        float p = 1 - probs[next_token];
+        for (int f = 0; f < OUT_CLAUSES; f++) {
+            if (!GET_BIT(class_out + (next_token * OUT_CLAUSES + 7) / 8, f)) {
+                for (int i = 0; i < META_CLAUSES; i++) {
+                    if (GET_BIT(pattern_2 + f * META_CLAUSES * next_token, i)) {
+                        if (!GET_BIT(meta_clause_outputs + f * META_CLAUSES * next_token, i)) {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                TOGGLE_BIT(pattern_2 + f * META_CLAUSES * next_token, i);
+                            } else {
+                                for (int k = 0; k < VOCAB_SIZE; k++) {
+                                    if (!GET_BIT(clause_outputs + f * META_CLAUSES * next_token, i))
+                            }
+                }
+            }
         }
     }
 
-    float prob = probs[next_token];
-    float loss = -logf(fmaxf(prob, 1e-10f));
-
     free(out_clause_outputs);
-    return loss;
+    return probs[next_token];
 }
 
 /* ==================== 主函数 ==================== */
