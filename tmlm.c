@@ -23,9 +23,8 @@ uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(MEM * MEM * 2 + 7) / 8];              
-uint8_t pattern_2[VOCAB_SIZE * MEM * OUT_CLAUSES];          
-uint8_t mem[(MEM + 7) / 8] = {0};                                  
+uint8_t pattern[(MEM * MEM * 2 + 7) / 8];
+uint8_t pattern_2[VOCAB_SIZE * MEM * OUT_CLAUSES];                               
 
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
@@ -216,7 +215,7 @@ static float train(uint8_t token, uint8_t next_token) {
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t *class_out = out_clause_outputs + (size_t)k * out_bytes;
         uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(class_out, mem, class_pattern, OUT_CLAUSES, MEM);
+        clauses_2(class_out, meta_clause_outputs, class_pattern, OUT_CLAUSES, META_CLAUSES);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
