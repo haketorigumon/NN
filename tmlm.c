@@ -11,12 +11,8 @@
 #define CLAUSES 256
 #define OUT_CLAUSES 256
 #define META_CLAUSES 256
-#define MEM 256
 
 #define OUT_PATTERN_BYTES_PER_CLASS ((OUT_CLAUSES * META_CLAUSES + 7) / 8)
-
-#define BIT_ARRAY_SIZE 100
-uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
 #define CLEAR_BIT(arr, n)   ((arr)[(n)/8] &= ~(1U << ((n)%8)))
@@ -63,7 +59,6 @@ static int load_weights(const char *filename) {
 /* ==================== 初始化模型（仅在无权重文件时调用） ==================== */
 static void init_model(void) {
     srand(12345);
-
     for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
     for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
 }
@@ -149,15 +144,23 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
+/* ==================== 前向过程（完全遵循 train 函数的计算逻辑） ==================== */
 static int forward(uint8_t token) {
-    uint8_t *features = &token;
-    
-    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
-    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES * META_CLAUSES * 2, META_CLAUSES);
+    /* 输入 token 转为 one-hot 位数组（修复原 &token 越界问题） */
+    uint8_t features[(VOCAB_SIZE + 7) / 8] = {0};
+    SET_BIT(features, token);
 
+    /* 第一层：clause_outputs（使用 meta_clause_outputs 作为特征） */
+    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
+
+    /* 关键修复：clause_size 必须是 CLAUSES（原代码多写了 * META_CLAUSES * 2，导致越界） */
+    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES, META_CLAUSES);
+
+    /* 第二层：meta_clause_outputs（使用 clause_outputs 作为动态 literal pattern） */
     clauses(meta_clause_outputs, features, clause_outputs, META_CLAUSES, VOCAB_SIZE);
 
+    /* 输出层：为每个可能的下一个 token 计算 logits */
     int logits[VOCAB_SIZE] = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t out_clause_outputs[(OUT_CLAUSES + 7) / 8] = {0};
@@ -194,15 +197,20 @@ static int sample_next(uint8_t current) {
     return forward(current);
 }
 
+/* ==================== 训练函数（按原思路补全更新逻辑） ==================== */
 static float train(uint8_t token, uint8_t next_token) {
-    uint8_t *features = &token;
-    
-    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
-    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES * META_CLAUSES * 2, META_CLAUSES);
+    /* 输入 token 转为 one-hot 位数组 */
+    uint8_t features[(VOCAB_SIZE + 7) / 8] = {0};
+    SET_BIT(features, token);
 
+    /* 第一层 + 第二层（与 forward 完全一致） */
+    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
+
+    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES, META_CLAUSES);
     clauses(meta_clause_outputs, features, clause_outputs, META_CLAUSES, VOCAB_SIZE);
 
+    /* 输出层：为所有类别计算 out_clause_outputs（便于后续更新使用） */
     size_t out_bytes = (OUT_CLAUSES + 7) / 8;
     uint8_t *out_clause_outputs = (uint8_t *)malloc(VOCAB_SIZE * out_bytes);
     if (out_clause_outputs == NULL) {
@@ -219,11 +227,12 @@ static float train(uint8_t token, uint8_t next_token) {
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
-            if (GET_BIT(class_out + (size_t)k * out_bytes, i)) a++;
+            if (GET_BIT(class_out, i)) a++;          /* 修复：原代码索引错误 */
         }
         logits[k] = a;
     }
 
+    /* Softmax */
     double probs[VOCAB_SIZE];
     double max_val = logits[0];
     for (int i = 1; i < VOCAB_SIZE; i++) {
@@ -238,26 +247,33 @@ static float train(uint8_t token, uint8_t next_token) {
 
     int idx = categorical_sample(probs, VOCAB_SIZE);
 
+    /* ==================== 误差驱动更新（按原代码思路补全） ==================== */
     if (next_token != idx) {
-        float p = 1 - probs[next_token];
+        float p = 1.0f - (float)probs[next_token];   /* 越错越要更新的概率越高 */
+
+        uint8_t *correct_class_out = out_clause_outputs + (size_t)next_token * out_bytes;
+        uint8_t *correct_pattern   = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
+
         for (int f = 0; f < OUT_CLAUSES; f++) {
-            if (!GET_BIT(class_out + (next_token * OUT_CLAUSES + 7) / 8, f)) {
+            /* 如果正确类别的第 f 个输出子句没有被激活 */
+            if (!GET_BIT(correct_class_out, f)) {
                 for (int i = 0; i < META_CLAUSES; i++) {
-                    if (GET_BIT(pattern_2 + f * META_CLAUSES * next_token, i)) {
-                        if (!GET_BIT(meta_clause_outputs + f * META_CLAUSES * next_token, i)) {
+                    /* 该 literal 在 pattern_2 中被选中，但 meta_clause 未激活 → 不匹配 */
+                    if (GET_BIT(correct_pattern, f * META_CLAUSES + i)) {
+                        if (!GET_BIT(meta_clause_outputs, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
-                                TOGGLE_BIT(pattern_2 + f * META_CLAUSES * next_token, i);
-                            } else {
-                                for (int k = 0; k < VOCAB_SIZE; k++) {
-                                    if (!GET_BIT(clause_outputs + f * META_CLAUSES * next_token, i))
+                                TOGGLE_BIT(correct_pattern, f * META_CLAUSES + i);
                             }
+                            /* else 分支原代码未完成，这里按 Tsetlin Machine 典型做法仅做概率翻转 */
+                        }
+                    }
                 }
             }
         }
     }
 
     free(out_clause_outputs);
-    return probs[next_token];
+    return probs[next_token];   /* 返回正确 token 的概率（训练中作为“置信度”） */
 }
 
 /* ==================== 主函数 ==================== */
