@@ -13,7 +13,7 @@
 #define META_CLAUSES 256
 #define MEM 256
 
-#define OUT_PATTERN_BYTES_PER_CLASS ((OUT_CLAUSES * MEM * 2 + 7) / 8)
+#define OUT_PATTERN_BYTES_PER_CLASS ((OUT_CLAUSES * META_CLAUSES + 7) / 8)
 
 #define BIT_ARRAY_SIZE 100
 uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
@@ -23,8 +23,8 @@ uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(MEM * MEM * 2 + 7) / 8];
-uint8_t pattern_2[VOCAB_SIZE * MEM * OUT_CLAUSES];                               
+uint8_t pattern[(META_CLAUSES * META_CLAUSES * 2 + 7) / 8];
+uint8_t pattern_2[(VOCAB_SIZE * META_CLAUSES * OUT_CLAUSES + 7) / 8];                               
 
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
