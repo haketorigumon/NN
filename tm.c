@@ -148,18 +148,19 @@ static int forward(uint8_t token, uint8_t *mem) {
 
 static float train(uint8_t token, uint8_t next_token) {
     uint8_t *features = &token;
-    uint8_t *clause_outputs = clauses(features, pattern, CLAUSES, CLAUSE_FEATURES);
-    uint8_t *meta_clause_outputs = clauses(mem, pattern_2, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
-    uint8_t *hyper_clause_outputs = clauses(clause_outputs, meta_clause_outputs, MEM, CLAUSES);
+    uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
+    clauses(clause_outputs, mem, pattern, META_CLAUSES * CLAUSE_FEATURES * 2, MEM);
+    uint8_t meta_clause_outputs[(MEM + 7) / 8] = {0};
+    clauses(meta_clause_outputs, features, clause_outputs, MEM, META_CLAUSES * CLAUSE_FEATURES);
     int logits[VOCAB_SIZE];
     uint8_t *out_clause_outputs = malloc((size_t)(VOCAB_SIZE * OUT_CLAUSES));
-    if (r_clause_outputs == NULL) {
+    if (out_clause_outputs == NULL) {
         perror("malloc for out_clause_outputs failed");
     }
     *out_clause_outputs = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         int a = 0;
-        clauses(out_clause_outputs + (size_t)k * OUT_CLAUSES, hyper_clause_outputs, pattern_3+k*MEM, OUT_CLAUSES, MEM);
+        clauses(out_clause_outputs + (size_t)k * OUT_CLAUSES, meta_clause_outputs, pattern_3+k*MEM, OUT_CLAUSES, MEM);
         for (int i = 0; i < OUT_CLAUSES; i++) {
             if(GET_BIT(out_clause_outputs,i)) {
                 a++;
