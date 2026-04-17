@@ -163,19 +163,16 @@ static int forward(uint8_t token) {
     uint8_t features[1] = {token};
 
     uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
-    clauses(clause_outputs, features, pattern, CLAUSES, CLAUSE_FEATURES);
+    clauses(clause_outputs, mem, pattern, CLAUSES, MEM);
 
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
-    clauses(meta_clause_outputs, mem, pattern_2, META_CLAUSES, MEM);
-
-    uint8_t hyper_clause_outputs[(MEM + 7) / 8] = {0};
-    clauses(hyper_clause_outputs, clause_outputs, hyper_pattern, MEM, CLAUSES);
+    clauses(meta_clause_outputs, features, clause_outputs, MEM, VOCAB_SIZE);
 
     int logits[VOCAB_SIZE] = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t out_clause_outputs[(OUT_CLAUSES + 7) / 8] = {0};
-        uint8_t *class_pattern = pattern_3 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses(out_clause_outputs, hyper_clause_outputs, class_pattern, OUT_CLAUSES, MEM);
+        uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
+        clauses_2(out_clause_outputs, meta_clause_outputs, class_pattern, OUT_CLAUSES, MEM);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
@@ -210,13 +207,10 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t features[1] = {token};
 
     uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
-    clauses(clause_outputs, features, pattern, CLAUSES, CLAUSE_FEATURES);
+    clauses(clause_outputs, mem, pattern, CLAUSES, MEM);
 
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
-    clauses(meta_clause_outputs, mem, pattern_2, META_CLAUSES, MEM);
-
-    uint8_t hyper_clause_outputs[(MEM + 7) / 8] = {0};
-    clauses(hyper_clause_outputs, clause_outputs, hyper_pattern, MEM, CLAUSES);
+    clauses(meta_clause_outputs, features, clause_outputs, MEM, VOCAB_SIZE);
 
     size_t out_bytes = (OUT_CLAUSES + 7) / 8;
     uint8_t *out_clause_outputs = (uint8_t *)malloc(VOCAB_SIZE * out_bytes);
@@ -229,8 +223,8 @@ static float train(uint8_t token, uint8_t next_token) {
     int logits[VOCAB_SIZE] = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t *class_out = out_clause_outputs + (size_t)k * out_bytes;
-        uint8_t *class_pattern = pattern_3 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses(class_out, hyper_clause_outputs, class_pattern, OUT_CLAUSES, MEM);
+        uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
+        clauses(class_out, meta_clause_outputs, class_pattern, OUT_CLAUSES, MEM);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
