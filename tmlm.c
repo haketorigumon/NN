@@ -150,25 +150,15 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
-/* ==================== 前向推理（已按你的要求修复） ==================== */
 static int forward(uint8_t token) {
-    /* 1. 把当前 token 以 one-hot 形式融入当前 mem（上下文 + 当前输入） */
-    uint8_t features[(MEM + 7) / 8];
-    memcpy(features, mem, sizeof(mem));
-    SET_BIT(features, token);                     // 当前 token 加入状态
+    uint8_t *features = &token;
+    
+    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
+    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES * META_CLAUSES * 2, META_CLAUSES);
 
-    /* 2. 第一层：从（mem + token）提取 clause_outputs */
-    uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
-    clauses(clause_outputs, features, pattern, CLAUSES, MEM);
-
-    /* 3. 元层（meta layer）：输出存入 meta_clause_outputs */
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
-    clauses(meta_clause_outputs, clause_outputs, pattern, META_CLAUSES, CLAUSES);
+    clauses(meta_clause_outputs, features, clause_outputs, META_CLAUSES, VOCAB_SIZE);
 
-    /* 4. mem = 元层输出（你的核心要求） */
-    memcpy(mem, meta_clause_outputs, sizeof(meta_clause_outputs));
-
-    /* 5. 输出层：使用 mem（即元层输出）作为输入特征 */
     int logits[VOCAB_SIZE] = {0};
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t out_clause_outputs[(OUT_CLAUSES + 7) / 8] = {0};
@@ -205,25 +195,15 @@ static int sample_next(uint8_t current) {
     return forward(current);
 }
 
-/* ==================== 训练（同步修复） ==================== */
 static float train(uint8_t token, uint8_t next_token) {
-    /* 1. 同样把 token 融入 mem */
-    uint8_t features[(MEM + 7) / 8];
-    memcpy(features, mem, sizeof(mem));
-    SET_BIT(features, token);
+    uint8_t *features = &token;
+    
+    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
+    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES * META_CLAUSES * 2, META_CLAUSES);
 
-    /* 2. 第一层 */
-    uint8_t clause_outputs[(CLAUSES + 7) / 8] = {0};
-    clauses(clause_outputs, features, pattern, CLAUSES, MEM);
-
-    /* 3. 元层 */
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
-    clauses(meta_clause_outputs, clause_outputs, pattern, META_CLAUSES, CLAUSES);
+    clauses(meta_clause_outputs, features, clause_outputs, META_CLAUSES, VOCAB_SIZE);
 
-    /* 4. 更新 mem = 元层输出 */
-    memcpy(mem, meta_clause_outputs, sizeof(meta_clause_outputs));
-
-    /* 5. 输出层（使用 mem） */
     size_t out_bytes = (OUT_CLAUSES + 7) / 8;
     uint8_t *out_clause_outputs = (uint8_t *)malloc(VOCAB_SIZE * out_bytes);
     if (out_clause_outputs == NULL) {
@@ -259,7 +239,6 @@ static float train(uint8_t token, uint8_t next_token) {
 
     int idx = categorical_sample(probs, VOCAB_SIZE);
 
-    /* 训练更新：直接修改 pattern_2（原来是无用的 pattern_3） */
     if (next_token != idx) {
         uint8_t *correct_pattern = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
         for (int f = 0; f < 16; f++) {
