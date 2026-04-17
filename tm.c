@@ -28,7 +28,6 @@ uint8_t bit_array[(BIT_ARRAY_SIZE + 7) / 8];
 typedef struct {
     uint8_t  pattern[CLAUSE_FEATURES];
     uint8_t pattern_2[MEM];
-    uint8_t pattern_3[MEM];
 } Clause;
 
 Clause clause;
