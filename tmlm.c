@@ -215,13 +215,11 @@ static float train(uint8_t token, uint8_t next_token) {
         perror("malloc failed in train");
         exit(1);
     }
-    memset(out_clause_outputs, 0, VOCAB_SIZE * out_bytes);
+    memset(out_clause_outputs, 0, (CLASSES * CLAUSES_PER_CLASS + 7) / 8);
 
     int logits[CLASSES] = {0};
     for (int k = 0; k < CLASSES; k++) {
-        uint8_t *class_out = out_clause_outputs + (size_t)k * out_bytes;
-        uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(out_clause_outputs, mem, pattern_2, CLASSES * CLAUSES_PER_CLASS, META_CLAUSES);
+        clauses_2(out_clause_outputs, mem, pattern_2, CLASSES * CLAUSES_PER_CLASS, FEATURES_PER_CLAUSE_OF_CLASS);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
