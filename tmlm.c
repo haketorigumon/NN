@@ -199,7 +199,7 @@ static int sample_next(uint8_t current) {
 static float train(uint8_t token, uint8_t next_token) {
     uint8_t *features = &token;
 
-    uint8_t meta_layer_output[(CLAUSES_PER_BLOCK * BLOCKS_OF_META_LAYER + 7) / 8] = {0};
+    uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8] = {0};
     uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
