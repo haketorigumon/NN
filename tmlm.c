@@ -216,8 +216,8 @@ static float train(uint8_t token, uint8_t next_token) {
     }
     memset(out_clause_outputs, 0, VOCAB_SIZE * out_bytes);
 
-    int logits[VOCAB_SIZE] = {0};
-    for (int k = 0; k < VOCAB_SIZE; k++) {
+    int logits[CLASSES] = {0};
+    for (int k = 0; k < CLASSES; k++) {
         uint8_t *class_out = out_clause_outputs + (size_t)k * out_bytes;
         uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
         clauses_2(class_out, meta_clause_outputs, class_pattern, CLAUSES_PER_CLASS, META_CLAUSES);
