@@ -148,48 +148,44 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
 }
 
 static int forward(uint8_t token) {
-    uint8_t features[(VOCAB_SIZE + 7) / 8] = {0};
-    SET_BIT(features, token);
+    uint8_t *features = &token;
 
-    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
-    uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
+    uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8] = {0};
+    uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
-    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES, META_CLAUSES);
+    clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
+    clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
 
-    /* 第二层：meta_clause_outputs（使用 clause_outputs 作为动态 literal pattern） */
-    clauses(meta_clause_outputs, features, clause_outputs, META_CLAUSES, VOCAB_SIZE);
+    uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
+    if (class_layer_outputs == NULL) {
+        perror("malloc failed in train");
+        exit(1);
+    }
+    memset(class_layer_outputs, 0, (CLAUSES_OF_CLASS_LAYER + 7) / 8);
 
-    /* 输出层：为每个可能的下一个 token 计算 logits */
-    int logits[VOCAB_SIZE] = {0};
-    for (int k = 0; k < VOCAB_SIZE; k++) {
-        uint8_t out_clause_outputs[(OUT_CLAUSES + 7) / 8] = {0};
-        uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(out_clause_outputs, meta_clause_outputs, class_pattern, OUT_CLAUSES, META_CLAUSES);
-
+    int logits[CLASSES] = {0};
+    clauses_2(class_layer_outputs, mem, pattern_2, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
+    for (int k = 0; k < CLASSES; k++) {
         int a = 0;
-        for (int i = 0; i < OUT_CLAUSES; i++) {
-            if (GET_BIT(out_clause_outputs, i)) a++;
+        for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
+            if (GET_BIT(class_layer_outputs, k * CLAUSES_PER_CLASS + i)) a++;
         }
         logits[k] = a;
     }
 
-    /* Softmax + 采样 */
-    double probs[VOCAB_SIZE];
+    double probs[CLASSES];
     double max_val = logits[0];
-    for (int i = 1; i < VOCAB_SIZE; i++) {
+    for (int i = 1; i < CLASSES; i++) {
         if (logits[i] > max_val) max_val = logits[i];
     }
-
     double sum = 0.0;
-    for (int i = 0; i < VOCAB_SIZE; i++) {
+    for (int i = 0; i < CLASSES; i++) {
         probs[i] = exp((double)(logits[i] - max_val));
         sum += probs[i];
     }
-    for (int i = 0; i < VOCAB_SIZE; i++) {
-        probs[i] /= sum;
-    }
+    for (int i = 0; i < CLASSES; i++) probs[i] /= sum;
 
-    return categorical_sample(probs, VOCAB_SIZE);
+    return categorical_sample(probs);
 }
 
 static int sample_next(uint8_t current) {
