@@ -35,7 +35,6 @@ uint8_t pattern_2[(CLASSES * FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_PER_CLASS + 
 
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
-/* ==================== 保存 / 加载权重 ==================== */
 static void save_weights(const char *filename) {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
@@ -67,36 +66,32 @@ static int load_weights(const char *filename) {
     }
 }
 
-/* ==================== 初始化模型（仅在无权重文件时调用） ==================== */
 static void init_model(void) {
     srand(12345);
     for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
     for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
 }
 
-/* ==================== 采样函数 ==================== */
-static int categorical_sample(const double* probs, int num_classes) {
+static int categorical_sample(const double* probs) {
     double cum = 0.0;
     double max_val = probs[0];
-    for (int i = 1; i < num_classes; i++) {
+    for (int i = 1; i < CLASSES; i++) {
         if (probs[i] > max_val) max_val = probs[i];
     }
 
     double s = 0.0;
-    for (int i = 0; i < num_classes; i++) {
+    for (int i = 0; i < CLASSES; i++) {
         s += max_val - probs[i];
     }
-    s = s / num_classes;
+    s = s / (CLASSES - 1);
 
     int k = 0;
-    int a[256];
-    for (int i = 0; i < num_classes; i++) {
+    int a[CLASSES];
+    for (int i = 0; i < CLASSES; i++) {
         if (probs[i] > s) {
             a[k++] = i;
         }
     }
-
-    if (k == 0) return 0;
 
     double p = 0.0;
     for (int i = 0; i < k; i++) {
@@ -218,30 +213,28 @@ static float train(uint8_t token, uint8_t next_token) {
     memset(out_clause_outputs, 0, (CLASSES * CLAUSES_PER_CLASS + 7) / 8);
 
     int logits[CLASSES] = {0};
+    clauses_2(out_clause_outputs, mem, pattern_2, CLASSES * CLAUSES_PER_CLASS, FEATURES_PER_CLAUSE_OF_CLASS);
     for (int k = 0; k < CLASSES; k++) {
-        clauses_2(out_clause_outputs, mem, pattern_2, CLASSES * CLAUSES_PER_CLASS, FEATURES_PER_CLAUSE_OF_CLASS);
-
         int a = 0;
-        for (int i = 0; i < OUT_CLAUSES; i++) {
-            if (GET_BIT(class_out, i)) a++;          /* 修复：原代码索引错误 */
+        for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
+            if (GET_BIT(out_clause_outputs, k * CLAUSES_PER_CLASS + i)) a++;
         }
         logits[k] = a;
     }
 
-    /* Softmax */
-    double probs[VOCAB_SIZE];
+    double probs[CLASSES];
     double max_val = logits[0];
-    for (int i = 1; i < VOCAB_SIZE; i++) {
+    for (int i = 1; i < CLASSES; i++) {
         if (logits[i] > max_val) max_val = logits[i];
     }
     double sum = 0.0;
-    for (int i = 0; i < VOCAB_SIZE; i++) {
+    for (int i = 0; i < CLASSES; i++) {
         probs[i] = exp((double)(logits[i] - max_val));
         sum += probs[i];
     }
-    for (int i = 0; i < VOCAB_SIZE; i++) probs[i] /= sum;
+    for (int i = 0; i < CLASSES; i++) probs[i] /= sum;
 
-    int idx = categorical_sample(probs, VOCAB_SIZE);
+    int idx = categorical_sample(probs);
 
     if (next_token != idx) {
         float p = 1.0f - (float)probs[next_token];
