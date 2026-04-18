@@ -19,10 +19,10 @@
 #define CLAUSES_OF_INPUT_LAYER BLOCKS_OF_META_LAYER
 #define FEATURES_PER_CLAUSE_OF_INPUT_LAYER CLAUSES_PER_BLOCK
 
-
-#define CLAUSES_PER_CLASS 256
-#define FEATURES_PER_CLAUSE_OF_CLASS MEM
 #define CLASSES VOCAB_SIZE
+#define CLAUSES_PER_CLASS 256
+#define CLAUSES_OF_CLASS_LAYER CLASSES * CLAUSES_PER_CLASS
+#define FEATURES_PER_CLAUSE_OF_CLASS MEM
 
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
@@ -205,19 +205,19 @@ static float train(uint8_t token, uint8_t next_token) {
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
 
-    uint8_t *out_clause_outputs = (uint8_t *)malloc((CLASSES * CLAUSES_PER_CLASS + 7) / 8);
-    if (out_clause_outputs == NULL) {
+    uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
+    if (class_layer_outputs == NULL) {
         perror("malloc failed in train");
         exit(1);
     }
-    memset(out_clause_outputs, 0, (CLASSES * CLAUSES_PER_CLASS + 7) / 8);
+    memset(class_layer_outputs, 0, (CLAUSES_OF_CLASS_LAYER + 7) / 8);
 
     int logits[CLASSES] = {0};
-    clauses_2(out_clause_outputs, mem, pattern_2, CLASSES * CLAUSES_PER_CLASS, FEATURES_PER_CLAUSE_OF_CLASS);
+    clauses_2(class_layer_outputs, mem, pattern_2, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
     for (int k = 0; k < CLASSES; k++) {
         int a = 0;
         for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
-            if (GET_BIT(out_clause_outputs, k * CLAUSES_PER_CLASS + i)) a++;
+            if (GET_BIT(class_layer_outputs, k * CLAUSES_PER_CLASS + i)) a++;
         }
         logits[k] = a;
     }
@@ -240,7 +240,7 @@ static float train(uint8_t token, uint8_t next_token) {
         float p = 1.0f - (float)probs[next_token];
 
         for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
-            if (!GET_BIT(clauses_of_all_class, f + next_token * CLAUSES_PER_CLASS)) {
+            if (!GET_BIT(class_layer_outputs, f + next_token * CLAUSES_PER_CLASS)) {
                 for (int i = 0; i < META_CLAUSES; i++) {
                     if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i)) {
                         if (!GET_BIT(meta_clause_outputs, i)) {
