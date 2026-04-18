@@ -9,7 +9,7 @@
 
 #define VOCAB_SIZE 256
 #define CLAUSES 256
-#define OUT_CLAUSES 256
+#define CLAUSES_PER_CLASS 256
 #define META_CLAUSES 256
 
 #define OUT_PATTERN_BYTES_PER_CLASS ((OUT_CLAUSES * META_CLAUSES + 7) / 8)
@@ -223,7 +223,7 @@ static float train(uint8_t token, uint8_t next_token) {
     for (int k = 0; k < VOCAB_SIZE; k++) {
         uint8_t *class_out = out_clause_outputs + (size_t)k * out_bytes;
         uint8_t *class_pattern = pattern_2 + (size_t)k * OUT_PATTERN_BYTES_PER_CLASS;
-        clauses_2(class_out, meta_clause_outputs, class_pattern, OUT_CLAUSES, META_CLAUSES);
+        clauses_2(class_out, meta_clause_outputs, class_pattern, CLAUSES_PER_CLASS, META_CLAUSES);
 
         int a = 0;
         for (int i = 0; i < OUT_CLAUSES; i++) {
@@ -250,13 +250,12 @@ static float train(uint8_t token, uint8_t next_token) {
     if (next_token != idx) {
         float p = 1.0f - (float)probs[next_token];
 
-        uint8_t *correct_class_out = out_clause_outputs + (size_t)next_token * out_bytes;
         uint8_t *correct_pattern   = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
 
-        for (int f = 0; f < OUT_CLAUSES; f++) {
-            if (!GET_BIT(correct_class_out, f)) {
+        for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
+            if (!GET_BIT(clauses_of_all_class, f + next_token * CLAUSES_PER_CLASS)) {
                 for (int i = 0; i < META_CLAUSES; i++) {
-                    if (GET_BIT(correct_pattern, f * META_CLAUSES + i)) {
+                    if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i)) {
                         if (!GET_BIT(meta_clause_outputs, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 TOGGLE_BIT(correct_pattern, f * META_CLAUSES + i);
