@@ -154,17 +154,13 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
-/* ==================== 前向过程（完全遵循 train 函数的计算逻辑） ==================== */
 static int forward(uint8_t token) {
-    /* 输入 token 转为 one-hot 位数组（修复原 &token 越界问题） */
     uint8_t features[(VOCAB_SIZE + 7) / 8] = {0};
     SET_BIT(features, token);
 
-    /* 第一层：clause_outputs（使用 meta_clause_outputs 作为特征） */
     uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
     uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
 
-    /* 关键修复：clause_size 必须是 CLAUSES（原代码多写了 * META_CLAUSES * 2，导致越界） */
     clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES, META_CLAUSES);
 
     /* 第二层：meta_clause_outputs（使用 clause_outputs 作为动态 literal pattern） */
@@ -207,18 +203,14 @@ static int sample_next(uint8_t current) {
     return forward(current);
 }
 
-/* ==================== 训练函数（按原思路补全更新逻辑） ==================== */
 static float train(uint8_t token, uint8_t next_token) {
-    /* 输入 token 转为 one-hot 位数组 */
-    uint8_t features[(VOCAB_SIZE + 7) / 8] = {0};
-    SET_BIT(features, token);
+    uint8_t *features = &token;
 
-    /* 第一层 + 第二层（与 forward 完全一致） */
-    uint8_t clause_outputs[(CLAUSES * META_CLAUSES * 2 + 7) / 8] = {0};
-    uint8_t meta_clause_outputs[(META_CLAUSES + 7) / 8] = {0};
+    uint8_t meta_layer_output[(CLAUSES_PER_BLOCK * BLOCKS_OF_META_LAYER + 7) / 8] = {0};
+    uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
-    clauses(clause_outputs, meta_clause_outputs, pattern, CLAUSES, META_CLAUSES);
-    clauses(meta_clause_outputs, features, clause_outputs, META_CLAUSES, VOCAB_SIZE);
+    clauses(meta_layer_output, mem, pattern, CLAUSES, META_CLAUSES);
+    clauses(input_layer_output, features, meta_layer_output, META_CLAUSES, VOCAB_SIZE);
 
     /* 输出层：为所有类别计算 out_clause_outputs（便于后续更新使用） */
     size_t out_bytes = (OUT_CLAUSES + 7) / 8;
@@ -322,7 +314,7 @@ static float train(uint8_t token, uint8_t next_token) {
     }
 
     free(out_clause_outputs);
-    return probs[next_token];   /* 返回正确 token 的概率（训练中作为“置信度”） */
+    return probs[next_token];
 }
 
 /* ==================== 主函数 ==================== */
