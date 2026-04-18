@@ -11,7 +11,7 @@
 #define MEM 512
 
 #define BLOCKS_OF_META_LAYER MEM
-#define CLAUSES_PER_BLOCK VOCAB_SIZE
+#define CLAUSES_PER_BLOCK VOCAB_SIZE * 2
 #define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_BLOCK
 #define FEATURES_PER_CLAUSE_OF_BLOCK MEM
 
@@ -30,8 +30,8 @@
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(FEATURES_PER_CLAUSE_OF_BLOCK * BLOCKS_OF_META_LAYER * 2 + 7) / 8];
-uint8_t pattern_2[(CLASSES * FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_PER_CLASS + 7) / 8];                               
+uint8_t pattern[(MEM * MEM * 2 + 7) / 8];
+uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
 
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
