@@ -113,14 +113,12 @@ static int categorical_sample(const double* probs, int num_classes) {
     return a[k - 1];
 }
 
-/* ==================== 子句计算核心 ==================== */
 static void clauses(uint8_t *clause_outputs, const uint8_t *features,
                     uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
-    memset(clause_outputs, 0, (clause_size + 7) / 8);
 
-    for (size_t k = 0; k < clause_size; k++) {
+    for (int k = 0; k < clause_size; k++) {
         int a = 0, b = 0;
-        for (size_t i = 0; i < feature_size; i++) {
+        for (int i = 0; i < feature_size; i++) {
             if (GET_BIT(pattern_ptr, k * feature_size + i)) {
                 if (GET_BIT(features, i)) a++;
                 else b++;
@@ -138,7 +136,6 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
 
 static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
                     uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
-    memset(clause_outputs, 0, (clause_size + 7) / 8);
 
     for (size_t k = 0; k < clause_size; k++) {
         int a = 0, b = 0;
