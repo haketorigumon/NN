@@ -240,28 +240,20 @@ static float train(uint8_t token, uint8_t next_token) {
         float p = 1.0f - (float)probs[next_token];
 
         for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
-            if (!GET_BIT(class_layer_outputs, f + next_token * CLAUSES_PER_CLASS)) {
-                for (int i = 0; i < META_CLAUSES; i++) {
-                    if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i)) {
-                        if (!GET_BIT(meta_clause_outputs, i)) {
+            if (!GET_BIT(class_layer_outputs, next_token * CLAUSES_PER_CLASS + f)) {
+                for (int i = 0; i < FEATURES_PER_CLAUSE_OF_CLASS; i++) {
+                    if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i)) {
+                        if (!GET_BIT(input_layer_output, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
-                                TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i);
+                                TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
                             } else {
-                                for (int k = 0; k < VOCAB_SIZE; k++) {
-                                    if (GET_BIT(clause_outputs, i * VOCAB_SIZE + k)) {
+                                for (int k = 0; k < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; k++) {
+                                    if (GET_BIT(meta_layer_output, ((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k)) {
                                         if (!GET_BIT(features, k)) {
-                                            for (int h = 0; h < META_CLAUSES; h++) {
-                                                if (GET_BIT(pattern, (i * VOCAB_SIZE + k) * META_CLAUSES + h)) {
-                                                    if (GET_BIT(meta_clause_outputs, h)) {
-                                                        if (p >= (float)rand() / RAND_MAX) {
-                                                            TOGGLE_BIT(pattern, (i * VOCAB_SIZE + k) * META_CLAUSES + h);
-                                                        }
-                                                    }
-                                                } else {
-                                                    if (!GET_BIT(meta_clause_outputs, h)) {
-                                                        if (p >= (float)rand() / RAND_MAX) {
-                                                            TOGGLE_BIT(pattern, (i * VOCAB_SIZE + k) * META_CLAUSES + h);
-                                                        }
+                                            for (int h = 0; h < FEATURES_PER_CLAUSE_OF_BLOCK; h++) {
+                                                if (GET_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h) == GET_BIT(mem, h)) {
+                                                    if (p >= (float)rand() / RAND_MAX) {
+                                                        TOGGLE_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
                                                     }
                                                 }
                                             }
@@ -289,9 +281,9 @@ static float train(uint8_t token, uint8_t next_token) {
                             }
                         }
                     } else {
-                        if (GET_BIT(meta_clause_outputs, i)) {
+                        if (GET_BIT(input_layer_output, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
-                                TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i);
+                                TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
                             }
                         }
                     }
