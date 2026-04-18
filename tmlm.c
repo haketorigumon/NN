@@ -206,10 +206,9 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t meta_layer_output[(CLAUSES_PER_BLOCK * BLOCKS_OF_META_LAYER + 7) / 8] = {0};
     uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
-    clauses(meta_layer_output, mem, pattern, CLAUSES, META_CLAUSES);
-    clauses(input_layer_output, features, meta_layer_output, META_CLAUSES, VOCAB_SIZE);
+    clauses(meta_layer_output, mem, pattern, CLAUSES_PER_BLOCK * BLOCKS_OF_META_LAYER, BLOCKS_OF_META_LAYER * CLAUSES_PER_BLOCK * FEATURES_PER_CLAUSE_OF_BLOCK);
+    clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
 
-    /* 输出层：为所有类别计算 out_clause_outputs（便于后续更新使用） */
     size_t out_bytes = (OUT_CLAUSES + 7) / 8;
     uint8_t *out_clause_outputs = (uint8_t *)malloc(VOCAB_SIZE * out_bytes);
     if (out_clause_outputs == NULL) {
