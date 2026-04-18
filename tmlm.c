@@ -263,7 +263,7 @@ static float train(uint8_t token, uint8_t next_token) {
                                             for (int h = 0; h < FEATURES_PER_CLAUSE_OF_BLOCK; h++) {
                                                 if (GET_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h) != GET_BIT(mem, h)) {
                                                     if (p >= (float)rand() / RAND_MAX) {
-                                                        TOGGLE_BIT(pattern, (i * VOCAB_SIZE + k) * META_CLAUSES + h);
+                                                        TOGGLE_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
                                                     }
                                                 }
                                             }
