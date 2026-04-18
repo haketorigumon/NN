@@ -12,6 +12,7 @@
 
 #define BLOCKS_OF_META_LAYER MEM
 #define CLAUSES_PER_BLOCK VOCAB_SIZE
+#define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_BLOCK
 #define FEATURES_PER_CLAUSE_OF_BLOCK MEM
 
 
@@ -206,7 +207,7 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t meta_layer_output[(CLAUSES_PER_BLOCK * BLOCKS_OF_META_LAYER + 7) / 8] = {0};
     uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
-    clauses(meta_layer_output, mem, pattern, CLAUSES_PER_BLOCK * BLOCKS_OF_META_LAYER, BLOCKS_OF_META_LAYER * CLAUSES_PER_BLOCK * FEATURES_PER_CLAUSE_OF_BLOCK);
+    clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
 
     uint8_t *out_clause_outputs = (uint8_t *)malloc((CLASSES * CLAUSES_PER_CLASS + 7) / 8);
