@@ -250,18 +250,16 @@ static float train(uint8_t token, uint8_t next_token) {
     if (next_token != idx) {
         float p = 1.0f - (float)probs[next_token];
 
-        uint8_t *correct_pattern   = pattern_2 + (size_t)next_token * OUT_PATTERN_BYTES_PER_CLASS;
-
         for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
             if (!GET_BIT(clauses_of_all_class, f + next_token * CLAUSES_PER_CLASS)) {
                 for (int i = 0; i < META_CLAUSES; i++) {
                     if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i)) {
-                        if (!GET_BIT(meta_clause_outputs, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i)) {
+                        if (!GET_BIT(meta_clause_outputs, META_CLAUSES + i)) {
                             if (p >= (float)rand() / RAND_MAX) {
-                                TOGGLE_BIT(correct_pattern, f * META_CLAUSES + i);
+                                TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i);
                             } else {
                                 for (int k = 0; k < VOCAB_SIZE; k++) {
-                                    if (GET_BIT(clause_outputs + i * VOCAB_SIZE, k)) {
+                                    if (GET_BIT(clause_outputs, k)) {
                                         if (!GET_BIT(features, k)) {
                                             for (int h = 0; h < META_CLAUSES; h++) {
                                                 if (GET_BIT(pattern, h))
@@ -272,7 +270,7 @@ static float train(uint8_t token, uint8_t next_token) {
                             }
                         }
                     } else {
-                        if (GET_BIT(meta_clause_outputs, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i)) {
+                        if (GET_BIT(meta_clause_outputs, META_CLAUSES + i)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * META_CLAUSES + i);
                             }
