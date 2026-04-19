@@ -368,5 +368,12 @@ int main(int argc, char **argv) {
 
         save_weights(WEIGHTS_FILE);
     }
+    fp = fopen(MEM_FILE, "wb");
+    if (fp == NULL) {
+        perror("创建文件失败");
+        return -1;
+    }
+    fwrite(mem, 1, sizeof(mem), fp);
+    fclose(fp);
     return 0;
 }
