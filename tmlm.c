@@ -138,8 +138,8 @@ static int forward(uint8_t token) {
     uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
-    clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-    mem = input_layer_output;
+    clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
+    
     uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
     if (class_layer_outputs == NULL) {
         perror("malloc failed in train");
@@ -180,8 +180,7 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
-    clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-    mem = input_layer_output;
+    clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
     
     uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
     if (class_layer_outputs == NULL) {
@@ -221,7 +220,7 @@ static float train(uint8_t token, uint8_t next_token) {
             if (!GET_BIT(class_layer_outputs, next_token * CLAUSES_PER_CLASS + f)) {
                 for (int i = 0; i < FEATURES_PER_CLAUSE_OF_CLASS; i++) {
                     if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i)) {
-                        if (!GET_BIT(input_layer_output, i)) {
+                        if (!GET_BIT(mem, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
                             } else {
@@ -251,7 +250,7 @@ static float train(uint8_t token, uint8_t next_token) {
                             }
                         }
                     } else {
-                        if (GET_BIT(input_layer_output, i)) {
+                        if (GET_BIT(mem, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
                             }
