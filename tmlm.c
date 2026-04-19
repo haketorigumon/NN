@@ -294,6 +294,11 @@ int main(int argc, char **argv) {
 
     FILE *fp = fopen(weights_file, "rb");
     if (!fp) {
+        fp = fopen(weights_file, "wb");
+        if (fp == NULL) {
+            perror("创建文件失败");
+            return -1;
+        }
         init_model();
         fwrite(pattern,   1, sizeof(pattern),   fp);
         fwrite(pattern_2,   1, sizeof(pattern),   fp);
@@ -306,6 +311,11 @@ int main(int argc, char **argv) {
     
     fp = fopen(mem_file, "rb");
     if (!fp) {
+        fp = fopen(mem_file, "wb");
+        if (fp == NULL) {
+            perror("创建文件失败");
+            return -1;
+        }
         for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = 0;
         fwrite(mem, 1, sizeof(pattern), fp);
     }
