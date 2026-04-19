@@ -34,7 +34,7 @@
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(MEM * MEM * 2 + 7) / 8];
+uint8_t pattern[(CLAUSES_OF_META_LAYER * FEATURES_PER_CLAUSE_OF_BLOCK + 7) / 8];
 uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
@@ -136,7 +136,6 @@ static int forward(uint8_t token) {
     uint8_t *features = &token;
 
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8] = {0};
-    uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
@@ -176,9 +175,7 @@ static int forward(uint8_t token) {
 
 static float train(uint8_t token, uint8_t next_token) {
     uint8_t *features = &token;
-
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8] = {0};
-    uint8_t input_layer_output[(CLAUSES_OF_INPUT_LAYER + 7) / 8] = {0};
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
