@@ -231,6 +231,11 @@ static float train(uint8_t token, uint8_t next_token) {
                                                         TOGGLE_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
                                                     }
                                                 }
+                                                if (GET_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + FEATURES_PER_CLAUSE_OF_BLOCK * CLAUSES_OF_META_LAYER + h) != GET_BIT(mem, h)) {
+                                                    if (p >= (float)rand() / RAND_MAX) {
+                                                        TOGGLE_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + FEATURES_PER_CLAUSE_OF_BLOCK * CLAUSES_OF_META_LAYER + h);
+                                                    }
+                                                }
                                             }
                                         }
                                     } else {
