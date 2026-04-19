@@ -139,7 +139,7 @@ static int forward(uint8_t token) {
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-
+    mem = input_layer_output;
     uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
     if (class_layer_outputs == NULL) {
         perror("malloc failed in train");
@@ -181,7 +181,8 @@ static float train(uint8_t token, uint8_t next_token) {
 
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(input_layer_output, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-
+    mem = input_layer_output;
+    
     uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
     if (class_layer_outputs == NULL) {
         perror("malloc failed in train");
@@ -366,7 +367,7 @@ int main(int argc, char **argv) {
         free(text);
         printf("\nTraining complete.\n");
 
-        save_weights(weights_file);
+        save_weights(WEIGHTS_FILE);
     }
     return 0;
 }
