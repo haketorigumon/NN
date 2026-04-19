@@ -295,25 +295,21 @@ int main(int argc, char **argv) {
     FILE *fp = fopen(weights_file, "rb");
     if (!fp) {
         init_model();
-        printf("权重文件 %s 不存在，将随机初始化模型...\n", filename);
+        fwrite(pattern,   1, sizeof(pattern),   fp);
+        fwrite(pattern_2,   1, sizeof(pattern),   fp);
+        fclose(fp);
+    }else {
+        fread(pattern,   1, sizeof(pattern),   fp);
+        fread(pattern_2, 1, sizeof(pattern_2), fp);
+        fclose(fp);
     }
-    size_t r1 = fread(pattern,   1, sizeof(pattern),   fp);
-    size_t r2 = fread(pattern_2, 1, sizeof(pattern_2), fp);
-    fclose(fp);
-
-    if (r1 == sizeof(pattern) && r2 == sizeof(pattern_2)) {
-        printf("权重已从文件 %s 成功加载\n", filename);
-    } else {
-        printf("权重文件 %s 损坏或大小不匹配，将随机初始化...\n", filename);
-    }
-
     
     fp = fopen(mem_file, "rb");
     if (!fp) {
-        init_model();
-        printf("文件 %s 不存在...\n", filename);
+        for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = 0;
+        fwrite(mem, 1, sizeof(pattern), fp);
     }
-    r1 = fread(mem,   1, sizeof(pattern),   fp);
+    fread(mem, 1, sizeof(pattern), fp);
     fclose(fp);
     
     if (train_file) {
