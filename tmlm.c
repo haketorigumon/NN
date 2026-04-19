@@ -7,6 +7,9 @@
 #include <time.h>
 #include <stdint.h>
 
+#define MEM_FILE "tmlm.mem"
+#define WEIGHTS_FILE "tmlm.weights"
+
 #define VOCAB_SIZE 256
 #define MEM 512
 
@@ -34,8 +37,6 @@ uint8_t pattern[(MEM * MEM * 2 + 7) / 8];
 uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
-
-static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
 static void save_weights(const char *filename) {
     FILE *fp = fopen(filename, "wb");
@@ -171,9 +172,6 @@ static int forward(uint8_t token) {
     return categorical_sample(probs);
 }
 
-static int sample_next(uint8_t current) {
-    return forward(current);
-}
 
 static float train(uint8_t token, uint8_t next_token) {
     uint8_t *features = &token;
@@ -268,9 +266,8 @@ static float train(uint8_t token, uint8_t next_token) {
 }
 
 int main(int argc, char **argv) {
-    const char *train_file = NULL;
-    const char *seed_text = "a";
-    const char *weights_file = DEFAULT_WEIGHTS;
+    char *train_file = NULL;
+    char *seed_text = "a";
     int epochs = 20;
     int gen_tokens = 50;
 
@@ -290,9 +287,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    FILE *fp = fopen(weights_file, "rb");
+    FILE *fp = fopen(WEIGHTS_FILE, "rb");
     if (!fp) {
-        fp = fopen(weights_file, "wb");
+        fp = fopen(WEIGHTS_FILE, "wb");
         if (fp == NULL) {
             perror("创建文件失败");
             return -1;
@@ -307,9 +304,9 @@ int main(int argc, char **argv) {
         fclose(fp);
     }
     
-    fp = fopen(mem_file, "rb");
+    fp = fopen(MEM_FILE, "rb");
     if (!fp) {
-        fp = fopen(mem_file, "wb");
+        fp = fopen(MEM_FILE, "wb");
         if (fp == NULL) {
             perror("创建文件失败");
             return -1;
@@ -353,8 +350,7 @@ int main(int argc, char **argv) {
 
                 total_loss += train(token, next_token);
 
-                int predicted = sample_next(token);
-                if (predicted == next_token) correct++;
+                if (forward(token) == next_token) correct++;
             }
 
             float avg_loss = total_loss / (len - 1);
@@ -375,7 +371,6 @@ int main(int argc, char **argv) {
         save_weights(weights_file);
     }
 
-    /* ==================== 生成阶段 ==================== */
     printf("\nGenerating text with seed: \"%s\"\n\n", seed_text);
     printf("%s", seed_text);
 
