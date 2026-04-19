@@ -267,7 +267,6 @@ static float train(uint8_t token, uint8_t next_token) {
     return probs[next_token];
 }
 
-/* ==================== 主函数 ==================== */
 int main(int argc, char **argv) {
     const char *train_file = NULL;
     const char *seed_text = "a";
@@ -275,7 +274,6 @@ int main(int argc, char **argv) {
     int epochs = 20;
     int gen_tokens = 50;
 
-    /* 命令行参数解析 */
     for (int i = 1; i < argc; i++) {
         if (i + 1 < argc) {
             if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
