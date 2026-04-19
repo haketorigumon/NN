@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
         }
         init_model();
         fwrite(pattern,   1, sizeof(pattern),   fp);
-        fwrite(pattern_2,   1, sizeof(pattern),   fp);
+        fwrite(pattern_2,   1, sizeof(pattern_2),   fp);
         fclose(fp);
     }else {
         fread(pattern,   1, sizeof(pattern),   fp);
