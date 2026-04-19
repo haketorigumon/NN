@@ -267,7 +267,7 @@ static float train(uint8_t token, uint8_t next_token) {
 
 int main(int argc, char **argv) {
     char *train_file = NULL;
-    char *seed_text = "a";
+    char *seed_text = NULL;
     int epochs = 20;
     int gen_tokens = 50;
 
@@ -275,14 +275,12 @@ int main(int argc, char **argv) {
         if (i + 1 < argc) {
             if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
                 train_file = argv[++i];
-            } else if (strcmp(argv[i], "--seed") == 0 || strcmp(argv[i], "-s") == 0) {
+            } else if (strcmp(argv[i], "--Generate") == 0 || strcmp(argv[i], "-g") == 0) {
                 seed_text = argv[++i];
             } else if (strcmp(argv[i], "--tokens") == 0 || strcmp(argv[i], "-n") == 0) {
                 gen_tokens = atoi(argv[++i]);
             } else if (strcmp(argv[i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
                 epochs = atoi(argv[++i]);
-            } else if (strcmp(argv[i], "--weights") == 0 || strcmp(argv[i], "-w") == 0) {
-                weights_file = argv[++i];
             }
         }
     }
@@ -370,22 +368,5 @@ int main(int argc, char **argv) {
 
         save_weights(weights_file);
     }
-
-    printf("\nGenerating text with seed: \"%s\"\n\n", seed_text);
-    printf("%s", seed_text);
-
-    if (strlen(seed_text) == 0) {
-        printf("\n");
-        return 0;
-    }
-
-    uint8_t current = (uint8_t)seed_text[strlen(seed_text) - 1];
-    for (int i = 0; i < gen_tokens; i++) {
-        int next = sample_next(current);
-        printf("%c", (char)next);
-        current = (uint8_t)next;
-    }
-    printf("\n");
-
     return 0;
 }
