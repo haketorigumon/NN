@@ -17,7 +17,7 @@
 #define BLOCKS_OF_META_LAYER MEM
 #define CLAUSES_PER_BLOCK INPUT_DIM * 2
 #define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_BLOCK
-#define FEATURES_PER_CLAUSE_OF_BLOCK MEM * 2
+#define FEATURES_PER_CLAUSE_OF_BLOCK MEM
 
 
 #define CLAUSES_OF_INPUT_LAYER BLOCKS_OF_META_LAYER
@@ -34,7 +34,7 @@
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(CLAUSES_OF_META_LAYER * FEATURES_PER_CLAUSE_OF_BLOCK + 7) / 8];
+uint8_t pattern[(CLAUSES_OF_META_LAYER * FEATURES_PER_CLAUSE_OF_BLOCK * 2 + 7) / 8];
 uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
