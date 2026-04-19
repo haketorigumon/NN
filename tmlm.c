@@ -33,6 +33,8 @@
 uint8_t pattern[(MEM * MEM * 2 + 7) / 8];
 uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
 
+uint8_t mem[(MEM + 7) / 8];
+
 static const char *DEFAULT_WEIGHTS = "tmlm.weights";
 
 static void save_weights(const char *filename) {
@@ -304,6 +306,16 @@ int main(int argc, char **argv) {
     } else {
         printf("权重文件 %s 损坏或大小不匹配，将随机初始化...\n", filename);
     }
+
+    
+    fp = fopen(mem_file, "rb");
+    if (!fp) {
+        init_model();
+        printf("文件 %s 不存在...\n", filename);
+    }
+    r1 = fread(mem,   1, sizeof(pattern),   fp);
+    fclose(fp);
+    
     if (train_file) {
         FILE *f = fopen(train_file, "rb");
         if (!f) {
