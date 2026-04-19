@@ -397,12 +397,36 @@ int main(int argc, char **argv) {
 
         save_weights(WEIGHTS_FILE);
     }
+    if (seed_text) {
+        printf("\n=== 生成模式 ===\n");
+        printf("Seed: %s\n", seed_text);
+        printf("Generated: %s", seed_text);   // 先输出 seed
+
+        size_t seed_len = strlen(seed_text);
+        uint8_t current = 0;
+
+        /* 先用 seed 更新记忆状态 */
+        for (size_t j = 0; j < seed_len; j++) {
+            current = (uint8_t)seed_text[j];
+            forward(current);                  // 更新 mem
+        }
+
+        /* 生成新 token */
+        for (int i = 0; i < gen_tokens; i++) {
+            current = forward(current);
+            putchar(current);
+        }
+        putchar('\n');
+        printf("生成完成（%d 个新 token）\n", gen_tokens);
+    }
+
     fp = fopen(MEM_FILE, "wb");
     if (fp == NULL) {
-        perror("创建文件失败");
+        perror("保存记忆文件失败");
         return -1;
     }
     fwrite(mem, 1, sizeof(mem), fp);
     fclose(fp);
+
     return 0;
 }
