@@ -156,7 +156,7 @@ static int forward(uint8_t token) {
         }
         logits[k] = a;
     }
-
+    free(class_layer_outputs);
     double probs[CLASSES];
     double max_val = logits[0];
     for (int i = 1; i < CLASSES; i++) {
@@ -261,7 +261,7 @@ static float train(uint8_t token, uint8_t next_token) {
         }
     }
 
-    free(out_clause_outputs);
+    free(class_layer_outputs);
     return probs[next_token];
 }
 
