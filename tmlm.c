@@ -311,9 +311,11 @@ int main(int argc, char **argv) {
         }
         for (size_t i = 0; i < sizeof(mem); i++) mem[i] = 0;
         fwrite(mem, 1, sizeof(mem), fp);
+        fclose(fp);
+    } else {
+        fread(mem, 1, sizeof(mem), fp);
+        fclose(fp);
     }
-    fread(mem, 1, sizeof(mem), fp);
-    fclose(fp);
     
     if (train_file) {
         FILE *f = fopen(train_file, "rb");
