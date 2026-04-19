@@ -226,12 +226,12 @@ static float train(uint8_t token, uint8_t next_token) {
                                 TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
                             } else {
                                 for (int k = 0; k < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; k++) {
-                                    if (GET_BIT(meta_layer_output, ((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k)) {
+                                    if (GET_BIT(meta_layer_output, i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k)) {
                                         if (!GET_BIT(features, k)) {
                                             for (int h = 0; h < FEATURES_PER_CLAUSE_OF_BLOCK; h++) {
-                                                if (GET_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h) == GET_BIT(mem, h)) {
+                                                if (GET_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h) == GET_BIT(mem, h)) {
                                                     if (p >= (float)rand() / RAND_MAX) {
-                                                        TOGGLE_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
+                                                        TOGGLE_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
                                                     }
                                                 }
                                             }
@@ -239,9 +239,9 @@ static float train(uint8_t token, uint8_t next_token) {
                                     } else {
                                         if (GET_BIT(features, k)) {
                                             for (int h = 0; h < FEATURES_PER_CLAUSE_OF_BLOCK; h++) {
-                                                if (GET_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h) != GET_BIT(mem, h)) {
+                                                if (GET_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h) != GET_BIT(mem, h)) {
                                                     if (p >= (float)rand() / RAND_MAX) {
-                                                        TOGGLE_BIT(pattern, (((next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
+                                                        TOGGLE_BIT(pattern, (i * FEATURES_PER_CLAUSE_OF_INPUT_LAYER + k) * FEATURES_PER_CLAUSE_OF_BLOCK + h);
                                                     }
                                                 }
                                             }
