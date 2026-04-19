@@ -309,10 +309,10 @@ int main(int argc, char **argv) {
             perror("创建文件失败");
             return -1;
         }
-        for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = 0;
-        fwrite(mem, 1, sizeof(pattern), fp);
+        for (size_t i = 0; i < sizeof(mem); i++) mem[i] = 0;
+        fwrite(mem, 1, sizeof(mem), fp);
     }
-    fread(mem, 1, sizeof(pattern), fp);
+    fread(mem, 1, sizeof(mem), fp);
     fclose(fp);
     
     if (train_file) {
