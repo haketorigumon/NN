@@ -379,17 +379,15 @@ int main(int argc, char **argv) {
 
                 total_loss += train(token, next_token);
 
-                if (forward(token) == next_token) correct++;
             }
 
             float avg_loss = total_loss / (len - 1);
-            float accuracy = (float)correct / (len - 1) * 100.0f;
 
-            printf("Epoch %2d: loss = %.4f | accuracy = %.2f%%\n",
-                   epoch + 1, avg_loss, accuracy);
+            printf("Epoch %2d: loss = %.4f%%\n",
+                   epoch + 1, avg_loss);
 
-            if (accuracy > 95.0f) {
-                printf("Early stopping: accuracy > 95%%\n");
+            if (avg_loss > 0.9f) {
+                printf("Early stopping: avg_loss > 0.9%%\n");
                 break;
             }
         }
