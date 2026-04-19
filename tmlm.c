@@ -47,25 +47,6 @@ static void save_weights(const char *filename) {
     printf("权重已保存到文件：%s\n", filename);
 }
 
-static int load_weights(const char *filename) {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp) {
-        printf("权重文件 %s 不存在，将随机初始化模型...\n", filename);
-        return 0;
-    }
-    size_t r1 = fread(pattern,   1, sizeof(pattern),   fp);
-    size_t r2 = fread(pattern_2, 1, sizeof(pattern_2), fp);
-    fclose(fp);
-
-    if (r1 == sizeof(pattern) && r2 == sizeof(pattern_2)) {
-        printf("权重已从文件 %s 成功加载\n", filename);
-        return 1;
-    } else {
-        printf("权重文件 %s 损坏或大小不匹配，将随机初始化...\n", filename);
-        return 0;
-    }
-}
-
 static void init_model(void) {
     srand(12345);
     for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
@@ -309,13 +290,20 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* 加载权重或随机初始化 */
-    int loaded = load_weights(weights_file);
-    if (!loaded) {
+    FILE *fp = fopen(weights_file, "rb");
+    if (!fp) {
         init_model();
+        printf("权重文件 %s 不存在，将随机初始化模型...\n", filename);
     }
+    size_t r1 = fread(pattern,   1, sizeof(pattern),   fp);
+    size_t r2 = fread(pattern_2, 1, sizeof(pattern_2), fp);
+    fclose(fp);
 
-    /* ==================== 训练阶段 ==================== */
+    if (r1 == sizeof(pattern) && r2 == sizeof(pattern_2)) {
+        printf("权重已从文件 %s 成功加载\n", filename);
+    } else {
+        printf("权重文件 %s 损坏或大小不匹配，将随机初始化...\n", filename);
+    }
     if (train_file) {
         FILE *f = fopen(train_file, "rb");
         if (!f) {
