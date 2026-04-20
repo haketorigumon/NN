@@ -73,7 +73,7 @@ static int categorical_sample(const double* probs) {
     int k = 0;
     int a[CLASSES];
     for (int i = 0; i < CLASSES; i++) {
-        if (probs[i] > s) {
+        if (probs[i] >= s) {
             a[k++] = i;
         }
     }
