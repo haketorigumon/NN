@@ -370,23 +370,23 @@ int main(int argc, char **argv) {
         printf("Training on %ld characters...\n\n", len);
 
         for (int epoch = 0; epoch < epochs; epoch++) {
-            float total_loss = 0.0f;
+            float total_prob = 0.0f;
             int correct = 0;
 
             for (long i = 0; i < len - 1; i++) {
                 uint8_t token = text[i];
                 uint8_t next_token = text[i + 1];
 
-                total_loss += train(token, next_token);
+                total_prob += train(token, next_token);
 
             }
 
-            float avg_loss = total_loss / (len - 1);
+            float avg_prob = total_prob / (len - 1);
 
-            printf("Epoch %2d: loss = %.4f%%\n",
-                   epoch + 1, avg_loss);
+            printf("Epoch %2d: avg_prob = %.4f%%\n",
+                   epoch + 1, avg_prob);
 
-            if (avg_loss > 0.9f) {
+            if (avg_prob > 0.9f) {
                 printf("Early stopping: avg_loss > 0.9%%\n");
                 break;
             }
