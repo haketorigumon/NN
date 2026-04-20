@@ -82,8 +82,11 @@ static int categorical_sample(const double* probs) {
     for (int i = 0; i < k; i++) {
         p += probs[a[i]];
     }
-
-    double r = (double)rand() / RAND_MAX * p;
+    p = 1 / p;
+    for (int i = 0; i < k; i++) {
+        probs[a[i]] = probs[a[i]] * p;
+    }
+    double r = (double)rand() / RAND_MAX;
     cum = 0.0;
     for (int i = 0; i < k; i++) {
         cum += probs[a[i]];
