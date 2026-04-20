@@ -101,12 +101,18 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
         int a = 0, b = 0;
         for (int i = 0; i < feature_size; i++) {
             if (GET_BIT(pattern_ptr, k * feature_size + i)) {
-                if (GET_BIT(features, i)) a++;
-                else b++;
+                if (GET_BIT(features, i)) {
+                    a++;
+                } else {
+                    b++;
+                }
             }
             if (GET_BIT(pattern_ptr, k * feature_size + i + clause_size * feature_size)) {
-                if (GET_BIT(features, i)) b++;
-                else a++;
+                if (GET_BIT(features, i)) {
+                    b++;
+                } else {
+                    a++;
+                }
             }
         }
         if (b < abs(a - b)) {
@@ -124,8 +130,11 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
         int a = 0, b = 0;
         for (size_t i = 0; i < feature_size; i++) {
             if (GET_BIT(pattern_ptr, k * feature_size + i)) {
-                if (GET_BIT(features, i)) a++;
-                else b++;
+                if (GET_BIT(features, i)) {
+                    a++;
+                } else {
+                    b++;
+                }
             }
         }
         if (b < abs(a - b)) {
@@ -208,7 +217,9 @@ static float train(uint8_t token, uint8_t next_token) {
         probs[i] = exp((double)(logits[i] - max_val));
         sum += probs[i];
     }
-    for (int i = 0; i < CLASSES; i++) probs[i] /= sum;
+    for (int i = 0; i < CLASSES; i++) {
+        probs[i] /= sum;
+    }
 
     int idx = categorical_sample(probs);
 
