@@ -185,11 +185,7 @@ static float train(uint8_t token, uint8_t next_token) {
     clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
     clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
 
-    uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
-    if (class_layer_outputs == NULL) {
-        perror("malloc failed in train");
-        exit(1);
-    }
+    uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
     clauses_2(class_layer_outputs, mem, pattern_2, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
 
     int logits[CLASSES] = {0};
@@ -294,8 +290,6 @@ static float train(uint8_t token, uint8_t next_token) {
             }
         }
     }
-
-    free(class_layer_outputs);
     return probs[next_token];
 }
 
