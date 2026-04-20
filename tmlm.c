@@ -300,16 +300,21 @@ int main(int argc, char **argv) {
     int epochs = 20;
     int gen_tokens = 50;
 
-    for (int i = 1; i < argc; i++) {
-        if (i + 1 < argc) {
-            if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
-                train_file = argv[++i];
-            } else if (strcmp(argv[i], "--Generate") == 0 || strcmp(argv[i], "-g") == 0) {
-                seed_text = argv[++i];
-            } else if (strcmp(argv[i], "--tokens") == 0 || strcmp(argv[i], "-n") == 0) {
-                gen_tokens = atoi(argv[++i]);
-            } else if (strcmp(argv[i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
-                epochs = atoi(argv[++i]);
+    if (1 < argc) {
+        int i = 2;
+        if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
+            train_file = argv[++i];
+            if (i < argc) {
+                if (strcmp(argv[i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
+                    epochs = atoi(argv[i]);
+                }
+            }
+        } else if (strcmp(argv[i], "--Generate") == 0 || strcmp(argv[i], "-g") == 0) {
+            seed_text = argv[++i];
+            if (i < argc) {
+                if (strcmp(argv[i], "--gen_tokens") == 0 || strcmp(argv[i], "-t") == 0) {
+                    gen_tokens = atoi(argv[i]);
+                }
             }
         }
     }
