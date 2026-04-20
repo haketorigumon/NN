@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
     int gen_tokens = 50;
 
     if (1 < argc) {
-        int i = 2;
+        int i = 1;
         if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
             train_file = argv[++i];
             if (i < argc) {
