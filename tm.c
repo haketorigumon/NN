@@ -57,7 +57,7 @@ static void init_model(void) {
     for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
 }
 
-static int categorical_sample(const double* probs) {
+static int categorical_sample(double* probs) {
     double cum = 0.0;
     double max_val = probs[0];
     for (int i = 1; i < CLASSES; i++) {
@@ -74,7 +74,10 @@ static int categorical_sample(const double* probs) {
     int a[CLASSES];
     for (int i = 0; i < CLASSES; i++) {
         if (probs[i] >= s) {
-            a[k++] = i;
+            a[k] = i;
+            k++;
+        } else {
+            probs[i] = 0.0;
         }
     }
 
@@ -86,6 +89,7 @@ static int categorical_sample(const double* probs) {
     for (int i = 0; i < k; i++) {
         probs[a[i]] = probs[a[i]] * p;
     }
+    
     double r = (double)rand() / RAND_MAX;
     cum = 0.0;
     for (int i = 0; i < k; i++) {
