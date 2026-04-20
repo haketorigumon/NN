@@ -231,9 +231,19 @@ static float train(uint8_t token, uint8_t next_token) {
     }
 
     int idx = categorical_sample(probs);
-
+    for (int i = 0; i < CLASSES; i++) {
+        if (next_token == i) {
+            float p = 1.0f - (float)probs[i];
+        } else {
+            if (probs[i] == 0.0) {
+                a;
+            } else {
+                a;
+            }
+        }
+    }
     if (next_token != idx) {
-        float p = 1.0f - (float)probs[next_token];
+        
 
         for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
             if (!GET_BIT(class_layer_outputs, next_token * CLAUSES_PER_CLASS + f)) {
