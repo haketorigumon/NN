@@ -52,7 +52,7 @@ static void save_weights(const char *filename) {
 }
 
 static void init_model(void) {
-    srand(12345);
+    srand(time());
     for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
     for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
 }
@@ -133,6 +133,7 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
 }
 
 static int forward(uint8_t token) {
+    srand(time());
     uint8_t *features = &token;
 
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8] = {0};
@@ -174,6 +175,7 @@ static int forward(uint8_t token) {
 
 
 static float train(uint8_t token, uint8_t next_token) {
+    srand(time());
     uint8_t *features = &token;
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8] = {0};
 
