@@ -381,23 +381,25 @@ int main(int argc, char **argv) {
 
         for (int epoch = 0; epoch < epochs; epoch++) {
             float total_prob = 0.0f;
-            int correct = 0;
+            float correct;
 
             for (long i = 0; i < len - 1; i++) {
                 uint8_t token = text[i];
                 uint8_t next_token = text[i + 1];
 
-                total_prob += train(token, next_token);
+                correct = train(token, next_token);
+                total_prob += correct;
+                printf("correct = %.4f\n", correct);
 
             }
 
             float avg_prob = total_prob / (len - 1);
 
-            printf("Epoch %2d: avg_prob = %.4f%%\n",
+            printf("Epoch %2d: avg_prob = %.4f\n",
                    epoch + 1, avg_prob);
 
             if (avg_prob > 0.9f) {
-                printf("Early stopping: avg_loss > 0.9%%\n");
+                printf("Early stopping: avg_loss > 0.9\n");
                 break;
             }
         }
