@@ -302,25 +302,15 @@ static float train(uint8_t token, uint8_t next_token) {
 int main(int argc, char **argv) {
     char *train_file = NULL;
     char *seed_text = NULL;
-    int epochs = 20;
-    int gen_tokens = 50;
+    int epochs = 5;
+    int gen_tokens = 10;
 
     if (1 < argc) {
         int i = 1;
         if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
             train_file = argv[++i];
-            if (i < argc) {
-                if (strcmp(argv[++i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
-                    epochs = atoi(argv[++i]);
-                }
-            }
         } else if (strcmp(argv[i], "--Generate") == 0 || strcmp(argv[i], "-g") == 0) {
             seed_text = argv[++i];
-            if (i < argc) {
-                if (strcmp(argv[++i], "--gen_tokens") == 0 || strcmp(argv[i], "-t") == 0) {
-                    gen_tokens = atoi(argv[++i]);
-                }
-            }
         }
     }
 
@@ -407,6 +397,13 @@ int main(int argc, char **argv) {
         free(text);
         printf("\nTraining complete.\n");
 
+        fp = fopen(MEM_FILE, "wb");
+        if (fp == NULL) {
+            perror("保存记忆文件失败");
+            return -1;
+        }
+        fwrite(mem, 1, sizeof(mem), fp);
+        fclose(fp);
         save_weights(WEIGHTS_FILE);
     }
     if (seed_text) {
