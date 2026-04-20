@@ -212,13 +212,15 @@ static float train(uint8_t token, uint8_t next_token) {
     for (int i = 1; i < CLASSES; i++) {
         if (logits[i] > max_val) max_val = logits[i];
     }
+    
     double sum = 0.0;
-    for (int i = 0; i < CLASSES; i++) {
-        probs[i] = exp((double)(logits[i] - max_val));
-        sum += probs[i];
+    for (int j = 0; j < CLASSES; j++) {
+        probs[j] = exp((double)(logits[j] - max_val));
+        sum += probs[j];
     }
-    for (int i = 0; i < CLASSES; i++) {
-        probs[i] /= sum;
+    
+    for (int u = 0; u < CLASSES; u++) {
+        probs[u] /= sum;
     }
 
     int idx = categorical_sample(probs);
