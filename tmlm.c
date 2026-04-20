@@ -305,15 +305,15 @@ int main(int argc, char **argv) {
         if (strcmp(argv[i], "--train") == 0 || strcmp(argv[i], "-t") == 0) {
             train_file = argv[++i];
             if (i < argc) {
-                if (strcmp(argv[i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
-                    epochs = atoi(argv[i]);
+                if (strcmp(argv[++i], "--epochs") == 0 || strcmp(argv[i], "-e") == 0) {
+                    epochs = atoi(argv[++i]);
                 }
             }
         } else if (strcmp(argv[i], "--Generate") == 0 || strcmp(argv[i], "-g") == 0) {
             seed_text = argv[++i];
             if (i < argc) {
-                if (strcmp(argv[i], "--gen_tokens") == 0 || strcmp(argv[i], "-t") == 0) {
-                    gen_tokens = atoi(argv[i]);
+                if (strcmp(argv[++i], "--gen_tokens") == 0 || strcmp(argv[i], "-t") == 0) {
+                    gen_tokens = atoi(argv[++i]);
                 }
             }
         }
