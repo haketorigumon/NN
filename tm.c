@@ -29,6 +29,8 @@
 
 #define CLAUSES_OF_INPUT_LAYER MEM
 #define FEATURES_PER_CLAUSE_OF_INPUT_LAYER INPUT_DIM
+#define FEATURES_OF_INPUT_LAYER FEATURES_PER_CLAUSE_OF_INPUT_LAYER * CLAUSES_OF_INPUT_LAYER
+
 
 #define CLASSES VOCAB_SIZE
 #define CLAUSES_PER_CLASS 256
@@ -43,7 +45,7 @@
 
 uint8_t pattern[(FEATURES_OF_MEM_LAYER * 2 + 7) / 8];
 uint8_t pattern_2[(FEATURES_OF_META_LAYER * 2 + 7) / 8];
-uint8_t pattern_3[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
+uint8_t pattern_3[(FEATURES_OF_INPUT_LAYER + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
 
