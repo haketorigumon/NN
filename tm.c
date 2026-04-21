@@ -111,21 +111,20 @@ static int categorical_sample(double* probs) {
     return a[k - 1];
 }
 
-static void clauses(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
+static void clauses(uint8_t *clause_outputs) {
 
-    for (int k = 0; k < clause_size; k++) {
+    for (int k = 0; k < CLAUSES_OF_MEM_LAYER; k++) {
         int a = 0, b = 0;
-        for (int i = 0; i < feature_size; i++) {
-            if (GET_BIT(pattern_ptr, k * feature_size + i)) {
-                if (GET_BIT(features, i)) {
+        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_MEM_LAYER; i++) {
+            if (GET_BIT(pattern, k * feature_size + i)) {
+                if (GET_BIT(mem, i)) {
                     a++;
                 } else {
                     b++;
                 }
             }
-            if (GET_BIT(pattern_ptr, k * feature_size + i + clause_size * feature_size)) {
-                if (GET_BIT(features, i)) {
+            if (GET_BIT(pattern, k * feature_size + i + FEATURES_OF_MEM_LAYER)) {
+                if (GET_BIT(mem, i)) {
                     b++;
                 } else {
                     a++;
@@ -206,7 +205,7 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t *features = &token;
     uint8_t mem_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
 
-    clauses(mem_layer_output, mem, pattern, CLAUSES_OF_MEM_LAYER, FEATURES_PER_CLAUSE_OF_MEM_LAYER);
+    clauses(mem_layer_output);
     
     clauses_2(mem, mem_layer_output);
 
