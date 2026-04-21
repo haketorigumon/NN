@@ -144,15 +144,19 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features) {
     for (int k = 0; k < CLAUSES_OF_META_LAYER; k++) {
         int a = 0, b = 0;
         for (int i = 0; i < FEATURES_PER_CLAUSE_OF_META; i++) {
-            if (GET_BIT(pattern_2, c) && GET_BIT(features, c)) {
-                a++;
-            } else {
-                b++;
+            if (GET_BIT(pattern_2, c)) {
+                if (GET_BIT(features, c)) {
+                    a++;
+                } else {
+                    b++;
+                }
             }
-            if (GET_BIT(pattern_2, FEATURES_OF_META_LAYER + c) && GET_BIT(features, c)) {
-                b++;
-            } else {
-                a++;
+            if (GET_BIT(pattern_2, FEATURES_OF_META_LAYER + c)) {
+                if (GET_BIT(features, c)) {
+                    b++;
+                } else {
+                    a++;
+                }
             }
             c++;
         }
