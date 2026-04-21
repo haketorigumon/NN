@@ -116,14 +116,14 @@ static void clauses(uint8_t *clause_outputs) {
     for (int k = 0; k < CLAUSES_OF_MEM_LAYER; k++) {
         int a = 0, b = 0;
         for (int i = 0; i < FEATURES_PER_CLAUSE_OF_MEM_LAYER; i++) {
-            if (GET_BIT(pattern, k * feature_size + i)) {
+            if (GET_BIT(pattern, c)) {
                 if (GET_BIT(mem, i)) {
                     a++;
                 } else {
                     b++;
                 }
             }
-            if (GET_BIT(pattern, k * feature_size + i + FEATURES_OF_MEM_LAYER)) {
+            if (GET_BIT(pattern, FEATURES_OF_MEM_LAYER + c)) {
                 if (GET_BIT(mem, i)) {
                     b++;
                 } else {
