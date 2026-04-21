@@ -141,17 +141,17 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
 }
 
 static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
+                    uint8_t *pattern_ptr) {
     int c = 0;
-    for (int k = 0; k < clause_size; k++) {
+    for (int k = 0; k < CLAUSES_OF_META_LAYER; k++) {
         int a = 0, b = 0;
-        for (int i = 0; i < feature_size; i++) {
+        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_META; i++) {
             if (GET_BIT(pattern_ptr, c) && GET_BIT(features, c)) {
                 a++;
             } else {
                 b++;
             }
-            if (GET_BIT(pattern_ptr, clause_size * feature_size + c) && GET_BIT(features, c)) {
+            if (GET_BIT(pattern_ptr, FEATURES_OF_META_LAYER + c) && GET_BIT(features, c)) {
                 b++;
             } else {
                 a++;
@@ -248,7 +248,7 @@ static float train(uint8_t token, uint8_t next_token) {
 
     clauses(mem_layer_output, mem, pattern, CLAUSES_OF_MEM_LAYER, FEATURES_PER_CLAUSE_OF_MEM_LAYER);
     
-    clauses_2(mem, mem_layer_output, pattern_2, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_META);
+    clauses_2(mem, mem_layer_output, pattern_2);
 
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
     clauses_3(class_layer_outputs, mem, pattern_3, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
