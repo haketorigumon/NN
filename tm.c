@@ -248,7 +248,7 @@ static float train(uint8_t token, uint8_t next_token) {
             float p = 1.0f - (float)probs[i];
             for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
                 if(GET_BIT(class_layer_outputs, i * CLAUSES_PER_CLASS + f) {
-                    a;
+                    up(mem, pattern_2, FEATURES_PER_CLAUSE_OF_CLASS, CLAUSES_PER_CLASS * CLASSES, 1);
                 }
             }
         } else {
