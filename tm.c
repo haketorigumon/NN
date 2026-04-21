@@ -111,6 +111,33 @@ static int categorical_sample(double* probs) {
     return a[k - 1];
 }
 
+static bool clause(const uint8_t *features, const uint8_t* pattern, const int features_per_clause) {
+    int c = 0;
+    int a = 0, b = 0;
+    for (int i = 0; i < features_per_clause; i++) {
+        if (GET_BIT(pattern, c)) {
+            if (GET_BIT(features, c)) {
+                a++;
+            } else {
+                b++;
+            }
+        }
+        if (GET_BIT(pattern_2, features_per_clause + c)) {
+            if (GET_BIT(features, c)) {
+                b++;
+            } else {
+                a++;
+            }
+        }
+        c++;
+    }
+    if (b < abs(a - b)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 static void clauses(uint8_t *clause_outputs) {
 
     for (int k = 0; k < CLAUSES_OF_MEM_LAYER; k++) {
@@ -208,12 +235,10 @@ static float train(uint8_t token, uint8_t next_token) {
     srand((float)(time(NULL) ^ clock()));
     uint8_t *features = &token;
     uint8_t mem_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
-
-    clauses(mem_layer_output);
-    
-    clauses_2(mem, mem_layer_output);
-
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
+    
+    clauses(mem_layer_output);
+    clauses_2(mem, mem_layer_output);
     clauses_3(class_layer_outputs, mem, pattern_3, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
 
     int logits[CLASSES] = {0};
