@@ -191,11 +191,15 @@ static int forward(uint8_t token) {
 
     return categorical_sample(probs);
 }
-static void up(uint8_t* layer, uint8_t* pattern, int features, int clauses) {
+static bool up(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool r) {
     for (int f = 0; f < clauses; f++) {
         for (int i = 0; i < features; i++) {
-            if (GET_BIT(layer, f * features + i) == GET_BIT(pattern, f * features + i)) {
-                a;
+            if ((GET_BIT(layer, f * features + i) != GET_BIT(pattern, f * features + i)) == r) {
+                if (p >= (float)rand() / RAND_MAX) {
+                    TOGGLE_BIT(pattern, f * features + i);
+                    return 1;
+                }
+                return 0;
             }
         }
     }
