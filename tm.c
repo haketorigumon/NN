@@ -191,7 +191,15 @@ static int forward(uint8_t token) {
 
     return categorical_sample(probs);
 }
-
+static void up(uint8_t* layer, uint8_t* pattern, int features, int clauses) {
+    for (int f = 0; f < clauses; f++) {
+        for (int i = 0; i < features; i++) {
+            if (GET_BIT(layer, f * features + i) == GET_BIT(pattern, f * features + i)) {
+                a;
+            }
+        }
+    }
+}
 
 static float train(uint8_t token, uint8_t next_token) {
     srand((float)(time(NULL) ^ clock()));
@@ -234,6 +242,11 @@ static float train(uint8_t token, uint8_t next_token) {
     for (int i = 0; i < CLASSES; i++) {
         if (next_token == i) {
             float p = 1.0f - (float)probs[i];
+            for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
+                if(GET_BIT(class_layer_outputs, i * CLAUSES_PER_CLASS + f) {
+                    a;
+                }
+            }
         } else {
             if (probs[i] == 0.0) {
                 a;
