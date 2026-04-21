@@ -142,6 +142,36 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
 
 static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
                     uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
+    int c = 0;
+    for (int k = 0; k < clause_size; k++) {
+        int a = 0, b = 0;
+        for (int i = 0; i < feature_size; i++) {
+            if (GET_BIT(pattern_ptr, k * feature_size + c)) {
+                if (GET_BIT(features, c)) {
+                    a++;
+                } else {
+                    b++;
+                }
+            }
+            if (GET_BIT(pattern_ptr, k * feature_size + c + clause_size * feature_size)) {
+                if (GET_BIT(features, c)) {
+                    b++;
+                } else {
+                    a++;
+                }
+            }
+            c++;
+        }
+        if (b < abs(a - b)) {
+            SET_BIT(clause_outputs, k);
+        } else {
+            CLEAR_BIT(clause_outputs, k);
+        }
+    }
+}
+
+static void clauses_3(uint8_t *clause_outputs, const uint8_t *features,
+                    uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
 
     for (size_t k = 0; k < clause_size; k++) {
         int a = 0, b = 0;
@@ -218,9 +248,10 @@ static bool up(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool
 static float train(uint8_t token, uint8_t next_token) {
     srand((float)(time(NULL) ^ clock()));
     uint8_t *features = &token;
-    uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
+    uint8_t mem_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
 
-    clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
+    clauses(mem_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
+    
     clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
 
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
