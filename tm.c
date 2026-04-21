@@ -112,24 +112,22 @@ static int categorical_sample(double* probs) {
 }
 
 static bool clause(const uint8_t *features, const uint8_t* pattern, const int features_per_clause) {
-    int c = 0;
     int a = 0, b = 0;
     for (int i = 0; i < features_per_clause; i++) {
-        if (GET_BIT(pattern, c)) {
-            if (GET_BIT(features, c)) {
+        if (GET_BIT(pattern, i)) {
+            if (GET_BIT(features, i)) {
                 a++;
             } else {
                 b++;
             }
         }
-        if (GET_BIT(pattern_2, features_per_clause + c)) {
-            if (GET_BIT(features, c)) {
+        if (GET_BIT(pattern, features_per_clause + i)) {
+            if (GET_BIT(features, i)) {
                 b++;
             } else {
                 a++;
             }
         }
-        c++;
     }
     if (b < abs(a - b)) {
         return 1;
