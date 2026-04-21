@@ -187,45 +187,6 @@ static void clauses_3(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
-static int forward(uint8_t token) {
-    srand((float)(time(NULL) ^ clock()));
-    uint8_t *features = &token;
-
-    uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
-
-    clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
-    clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-
-    uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
-    if (class_layer_outputs == NULL) {
-        perror("malloc failed in train");
-        exit(1);
-    }
-    clauses_2(class_layer_outputs, mem, pattern_2, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
-
-    int logits[CLASSES] = {0};
-    for (int k = 0; k < CLASSES; k++) {
-        int a = 0;
-        for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
-            if (GET_BIT(class_layer_outputs, k * CLAUSES_PER_CLASS + i)) a++;
-        }
-        logits[k] = a;
-    }
-    free(class_layer_outputs);
-    double probs[CLASSES];
-    double max_val = logits[0];
-    for (int i = 1; i < CLASSES; i++) {
-        if (logits[i] > max_val) max_val = logits[i];
-    }
-    double sum = 0.0;
-    for (int i = 0; i < CLASSES; i++) {
-        probs[i] = exp((double)(logits[i] - max_val));
-        sum += probs[i];
-    }
-    for (int i = 0; i < CLASSES; i++) probs[i] /= sum;
-
-    return categorical_sample(probs);
-}
 static bool up(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool r) {
     for (int f = 0; f < clauses; f++) {
         for (int i = 0; i < features; i++) {
@@ -247,7 +208,7 @@ static float train(uint8_t token, uint8_t next_token) {
 
     clauses(mem_layer_output, mem, pattern, CLAUSES_OF_MEM_LAYER, FEATURES_PER_CLAUSE_OF_MEM_LAYER);
     
-    clauses_2(mem, mem_layer_output, pattern_2);
+    clauses_2(mem, mem_layer_output);
 
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
     clauses_3(class_layer_outputs, mem, pattern_3, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
