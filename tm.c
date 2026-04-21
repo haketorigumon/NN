@@ -146,12 +146,12 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
     for (int k = 0; k < clause_size; k++) {
         int a = 0, b = 0;
         for (int i = 0; i < feature_size; i++) {
-            if (GET_BIT(pattern_ptr, k * feature_size + c) && GET_BIT(features, c)) {
+            if (GET_BIT(pattern_ptr, c) && GET_BIT(features, c)) {
                 a++;
             } else {
                 b++;
             }
-            if (GET_BIT(pattern_ptr, k * feature_size + c + clause_size * feature_size) && GET_BIT(features, c)) {
+            if (GET_BIT(pattern_ptr, clause_size * feature_size + c) && GET_BIT(features, c)) {
                 b++;
             } else {
                 a++;
