@@ -111,33 +111,8 @@ static int categorical_sample(double* probs) {
     return a[k - 1];
 }
 
-static bool clause(const uint8_t *features, const uint8_t* pattern, const int features_per_clause) {
-    int a = 0, b = 0;
-    for (int i = 0; i < features_per_clause; i++) {
-        if (GET_BIT(pattern, i)) {
-            if (GET_BIT(features, i)) {
-                a++;
-            } else {
-                b++;
-            }
-        }
-        if (GET_BIT(pattern, features_per_clause + i)) {
-            if (GET_BIT(features, i)) {
-                b++;
-            } else {
-                a++;
-            }
-        }
-    }
-    if (b < abs(a - b)) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 static void clauses(uint8_t *clause_outputs) {
-
+    int c = 0;
     for (int k = 0; k < CLAUSES_OF_MEM_LAYER; k++) {
         int a = 0, b = 0;
         for (int i = 0; i < FEATURES_PER_CLAUSE_OF_MEM_LAYER; i++) {
@@ -155,6 +130,7 @@ static void clauses(uint8_t *clause_outputs) {
                     a++;
                 }
             }
+            c++;
         }
         if (b < abs(a - b)) {
             SET_BIT(clause_outputs, k);
