@@ -62,14 +62,18 @@ static void save_weights(const char *filename) {
     }
     fwrite(pattern,   1, sizeof(pattern),   fp);
     fwrite(pattern_2, 1, sizeof(pattern_2), fp);
+    fwrite(pattern_3, 1, sizeof(pattern_3), fp);
+    fwrite(pattern_4, 1, sizeof(pattern_4), fp);
     fclose(fp);
     printf("权重已保存到文件：%s\n", filename);
 }
 
 static void init_model(void) {
-    srand((float)(time(NULL) ^ clock()));
-    for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
-    for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
+    srand((float)(time(NULL)));
+    for (int i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
+    for (int i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
+    for (int i = 0; i < sizeof(pattern_3); i++) pattern_3[i] = (uint8_t)(rand() & 0xFF);
+    for (int i = 0; i < sizeof(pattern_4); i++) pattern_4[i] = (uint8_t)(rand() & 0xFF);
 }
 
 static int categorical_sample(double* probs) {
@@ -251,7 +255,7 @@ static bool up(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool
 }
 
 static float train(uint8_t token, uint8_t next_token) {
-    srand((float)(time(NULL) ^ clock()));
+    srand((float)(time(NULL)));
     uint8_t *features = &token;
     uint8_t mem_layer_output[(CLAUSES_OF_MEM_LAYER + 7) / 8];
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
@@ -406,12 +410,16 @@ int main(int argc, char **argv) {
             return -1;
         }
         init_model();
-        fwrite(pattern,   1, sizeof(pattern),   fp);
-        fwrite(pattern_2,   1, sizeof(pattern_2),   fp);
+        fwrite(pattern, 1, sizeof(pattern), fp);
+        fwrite(pattern_2, 1, sizeof(pattern_2), fp);
+        fwrite(pattern_3, 1, sizeof(pattern_3), fp);
+        fwrite(pattern_4, 1, sizeof(pattern_4), fp);
         fclose(fp);
     }else {
-        fread(pattern,   1, sizeof(pattern),   fp);
+        fread(pattern, 1, sizeof(pattern), fp);
         fread(pattern_2, 1, sizeof(pattern_2), fp);
+        fread(pattern_3, 1, sizeof(pattern_3), fp);
+        fread(pattern_4, 1, sizeof(pattern_4), fp);
         fclose(fp);
     }
     
