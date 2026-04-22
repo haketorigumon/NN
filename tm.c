@@ -21,9 +21,9 @@
 #define FEATURES_OF_MEM_LAYER FEATURES_PER_CLAUSE_OF_MEM_LAYER * CLAUSES_OF_MEM_LAYER
 
 #define BLOCKS_OF_META_LAYER MEM
-#define CLAUSES_OF_META_BLOCK INPUT_DIM * 2
+#define CLAUSES_PER_META_BLOCK INPUT_DIM * 2
 #define FEATURES_PER_CLAUSE_OF_META CLAUSES_PER_MEM_BLOCK
-#define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_OF_META_BLOCK
+#define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_META_BLOCK
 #define FEATURES_OF_META_LAYER FEATURES_PER_CLAUSE_OF_META * CLAUSES_OF_META_LAYER
 
 
@@ -44,7 +44,7 @@
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
 uint8_t pattern[(FEATURES_OF_MEM_LAYER * 2 + 7) / 8];
-uint8_t pattern_2[(FEATURES_OF_META_LAYER * 2 + 7) / 8];
+uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_META * 2 + 7) / 8];
 uint8_t pattern_3[(FEATURES_OF_INPUT_LAYER + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
@@ -141,30 +141,32 @@ static void clauses(uint8_t *clause_outputs) {
 }
 
 static void clauses_2(uint8_t *clause_outputs, const uint8_t *features) {
-    int c = 0;
-    for (int k = 0; k < CLAUSES_OF_META_LAYER; k++) {
-        int a = 0, b = 0;
-        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_META; i++) {
-            if (GET_BIT(pattern_2, c)) {
-                if (GET_BIT(features, c)) {
-                    a++;
-                } else {
-                    b++;
+    for (int j = 0; j < BLOCKS_OF_META_LAYER; j++) {
+        for (int k = 0; k < CLAUSES_PER_META_BLOCK; k++) {
+            int a = 0, b = 0;
+            int c = j * FEATURES_PER_CLAUSE_OF_META;
+            for (int i = 0; i < FEATURES_PER_CLAUSE_OF_META; i++) {
+                if (GET_BIT(pattern_2, i)) {
+                    if (GET_BIT(features, c)) {
+                        a++;
+                    } else {
+                        b++;
+                    }
                 }
-            }
-            if (GET_BIT(pattern_2, FEATURES_OF_META_LAYER + c)) {
-                if (GET_BIT(features, c)) {
-                    b++;
-                } else {
-                    a++;
+                if (GET_BIT(pattern_2, FEATURES_OF_META_LAYER + i)) {
+                    if (GET_BIT(features, c)) {
+                        b++;
+                    } else {
+                        a++;
+                    }
                 }
+                c++;
             }
-            c++;
-        }
-        if (b < abs(a - b)) {
-            SET_BIT(clause_outputs, k);
-        } else {
-            CLEAR_BIT(clause_outputs, k);
+            if (b < abs(a - b)) {
+                SET_BIT(clause_outputs, k);
+            } else {
+                CLEAR_BIT(clause_outputs, k);
+            }
         }
     }
 }
