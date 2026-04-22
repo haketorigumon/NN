@@ -41,6 +41,7 @@
 
 #define CLASSES VOCAB_SIZE
 #define FEATURES_PER_CLASS CLAUSES_PER_OUT_BLOCK
+#define FEATURES_OF_CLASS_LAYER FEATURES_PER_CLASS * CLASSES
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
 #define CLEAR_BIT(arr, n)   ((arr)[(n)/8] &= ~(1U << ((n)%8)))
@@ -325,7 +326,7 @@ static float train(uint8_t token, uint8_t next_token) {
     
     int c = 0;
     int a[FEATURES_PER_CLASS] = 0;
-    
+    int g[FEATURES_OF_CLASS_LAYER + 7 / 8];
 
     for (int f = 0; f < CLASSES; f++) {
         if ((next_token == f) || (o[f] != 1)) {
@@ -337,17 +338,33 @@ static float train(uint8_t token, uint8_t next_token) {
                 if ((GET_BIT(pattern_4, i) != GET_BIT(class_layer_outputs, c)) == (next_token == f)) {
                     if (p >= (float)rand() / RAND_MAX) {
                         a[i]++;
+                        SET_BIT(g, c);
                     }
                 } else {
                     if (p >= (float)rand() / RAND_MAX) {
                         a[i]--;
+                        CLEAR_BIT(g, c);
                     }
                 }
                 c++;
             }
         }
     }
+    
+    for (int i = 0; i < FEATURES_PER_CLASS; i++) {
+        if (a[i] > 0) {
+            TOGGLE_BIT(pattern_4, i);
+            TOGGLE_BIT(g, i);
+        }
+    }
 
+    for (int i = 0; i < CLAUSES_OF_OUT_LAYER; i++) {
+        for (int j = 0; j < FEATURES_PER_CLAUSE_OF_OUT; j++) {
+            o[i] = 1;
+            k++;
+        }
+    }
+    
     for (int i = 0; i < CLASSES; i++) {
         if (next_token == i) {
             float p = 1.0f - (float)probs[i];
