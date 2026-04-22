@@ -240,16 +240,16 @@ static void clauses_4(uint8_t *clause_outputs) {
     }
 }
 
-static bool up(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool r) {
+static void update(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool r) {
+    int c = 0;
     for (int f = 0; f < clauses; f++) {
         for (int i = 0; i < features; i++) {
-            if ((GET_BIT(layer, f * features + i) != GET_BIT(pattern, f * features + i)) == r) {
+            if ((GET_BIT(pattern, i) != GET_BIT(layer, c)) == r) {
                 if (p >= (float)rand() / RAND_MAX) {
-                    TOGGLE_BIT(pattern, f * features + i);
-                    return 1;
+                    TOGGLE_BIT(pattern, i);
                 }
-                return 0;
             }
+            c++;
         }
     }
 }
@@ -260,6 +260,7 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t mem_layer_output[(CLAUSES_OF_MEM_LAYER + 7) / 8];
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
     uint8_t out_layer_outputs[(CLAUSES_OF_OUT_LAYER + 7) / 8];
+    uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
     
     clauses(mem_layer_output);
     clauses_2(meta_layer_output, mem_layer_output);
@@ -274,6 +275,8 @@ static float train(uint8_t token, uint8_t next_token) {
         for (int i = 0; i < FEATURES_PER_CLASS; i++) {
             if (GET_BIT(pattern_4, i) && GET_BIT(out_layer_outputs, c)) {
                 a++;
+                SET_BIT(class_layer_outputs, c);
+                
             }
             c++;
         }
@@ -296,7 +299,49 @@ static float train(uint8_t token, uint8_t next_token) {
         probs[u] /= sum;
     }
 
-    int idx = categorical_sample(probs);
+    double cum = 0.0;
+    double max_val = probs[0];
+    for (int i = 1; i < CLASSES; i++) {
+        if (probs[i] > max_val) max_val = probs[i];
+    }
+
+    double s = 0.0;
+    for (int i = 0; i < CLASSES; i++) {
+        s += max_val - probs[i];
+    }
+    s = s / (CLASSES - 1);
+
+    int k = 0;
+    int t = 0;
+    int a[CLASSES] = {0};
+    for (int i = 0; i < CLASSES; i++) {
+        if (probs[i] >= s) {
+            a[i] = 1;
+            k++;
+        } else {
+            t += probs[i];
+        }
+    }
+    
+    int c = 0;
+    int a[FEATURES_PER_CLASS] = 0;
+    float p = 1.0f - (float)probs[i];
+
+    for (int f = 0; f < CLASSES; f++) {
+        for (int i = 0; i < FEATURES_PER_CLASS; i++) {
+            if ((GET_BIT(pattern_4, i) != GET_BIT(class_layer_outputs, c)) == (next_token == f)) {
+                if (p >= (float)rand() / RAND_MAX) {
+                    a[i]++;
+                }
+            } else {
+                if (p >= (float)rand() / RAND_MAX) {
+                    a[i]--;
+                }
+            }
+            c++;
+        }
+    }
+
     for (int i = 0; i < CLASSES; i++) {
         if (next_token == i) {
             float p = 1.0f - (float)probs[i];
