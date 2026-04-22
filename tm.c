@@ -313,10 +313,10 @@ static float train(uint8_t token, uint8_t next_token) {
 
     int k = 0;
     float t = 0;
-    int a[CLASSES] = {0};
+    int o[CLASSES] = {0};
     for (int i = 0; i < CLASSES; i++) {
         if (probs[i] >= s) {
-            a[i] = 1;
+            o[i] = 1;
             k++;
         } else {
             t += probs[i];
@@ -328,6 +328,9 @@ static float train(uint8_t token, uint8_t next_token) {
     
 
     for (int f = 0; f < CLASSES; f++) {
+        if ((next_token != f) && (o[f] == 1)) {
+            a;
+        }
         float p = 1.0f - (float)probs[f];
         if (next_token != f) {
             p = t;
