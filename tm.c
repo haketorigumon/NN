@@ -32,12 +32,15 @@
 #define FEATURES_PER_CLAUSE_OF_INPUT_LAYER INPUT_DIM
 #define FEATURES_OF_INPUT_LAYER FEATURES_PER_CLAUSE_OF_INPUT_LAYER * CLAUSES_OF_INPUT_LAYER
 
-#define CLAUSES_OF_OUT_LAYER 256
+#define BLOCKS_OF_OUT_LAYER 256
+#define CLAUSES_PER_OUT_BLOCK 256
 #define FEATURES_PER_CLAUSE_OF_OUT MEM
-#define FEATURES_OF_OUT_LAYER FEATURES_PER_CLAUSE_OF_OUT * CLAUSES_OF_OUT_LAYER
+#define CLAUSES_OF_OUT_LAYER CLAUSES_PER_OUT_BLOCK * BLOCKS_OF_OUT_LAYER
+#define FEATURES_OF_OUT_LAYER CLAUSES_OF_OUT_LAYER * FEATURES_PER_CLAUSE_OF_OUT
+
 
 #define CLASSES VOCAB_SIZE
-#define FEATURES_PER_CLASS 256
+#define FEATURES_PER_CLASS CLAUSES_PER_OUT_BLOCK
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
 #define CLEAR_BIT(arr, n)   ((arr)[(n)/8] &= ~(1U << ((n)%8)))
@@ -46,7 +49,7 @@
 
 uint8_t pattern[(FEATURES_OF_MEM_LAYER * 2 + 7) / 8];
 uint8_t pattern_2[(FEATURES_PER_META_BLOCK * 2 + 7) / 8];
-uint8_t pattern_3[(FEATURES_OF_INPUT_LAYER * 2 + 7) / 8];                               
+uint8_t pattern_3[(FEATURES_OF_OUT_LAYER * 2 + 7) / 8];                               
 uint8_t pattern_4[(FEATURES_PER_CLASS + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
