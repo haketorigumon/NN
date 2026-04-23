@@ -302,13 +302,11 @@ static float train(uint8_t token, uint8_t next_token) {
     }
     s = s / (CLASSES - 1);
 
-    int k = 0;
     float t = 0;
-    int o[CLASSES] = {0};
+    uint8_t o[(CLASSES + 7) / 8] = {1};
     for (int i = 0; i < CLASSES; i++) {
         if (probs[i] >= s) {
-            o[i] = 1;
-            k++;
+            CLEAR_BIT(o, i);
         } else {
             t += probs[i];
         }
@@ -316,10 +314,10 @@ static float train(uint8_t token, uint8_t next_token) {
     
     int c = 0;
     int a[FEATURES_PER_CLASS] = 0;
-    int g[FEATURES_OF_CLASS_LAYER + 7 / 8];
+    uint8_t g[(FEATURES_OF_CLASS_LAYER + 7) / 8];
 
     for (int f = 0; f < CLASSES; f++) {
-        if ((next_token == f) || (o[f] != 1)) {
+        if ((next_token == f) || GET_BIT(o, f)) {
             float p = 1.0f - (float)probs[f];
             if (next_token != f) {
                 p = t;
