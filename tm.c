@@ -335,12 +335,12 @@ static float train(uint8_t token, uint8_t next_token) {
                 p = t;
             }
             for (int i = 0; i < FEATURES_PER_CLASS; i++) {
-                if ((GET_BIT(pattern_4, i) != GET_BIT(class_layer_outputs, c)) == (next_token == f)) {
+                if (GET_BIT(class_layer_outputs, c) && (GET_BIT(pattern_4, i) != (next_token == f))) {
                     if (p >= (float)rand() / RAND_MAX) {
                         a[i]++;
                         SET_BIT(g, c);
                     }
-                } else {
+                } else if (GET_BIT(class_layer_outputs, c)) {
                     if (p >= (float)rand() / RAND_MAX) {
                         a[i]--;
                         CLEAR_BIT(g, c);
