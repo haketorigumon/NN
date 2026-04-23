@@ -322,34 +322,24 @@ static float train(uint8_t token, uint8_t next_token) {
             if (next_token != f) {
                 p = t;
             }
-            for (int i = 0; i < FEATURES_PER_CLASS; i++) {
-                if (next_token == f) {
-                    if (p >= (float)rand() / RAND_MAX) {
-                        a[i]++;
+            int c = 0;
+            for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
+                for (int k = 0; k < FEATURES_PER_CLAUSE_OF_CLASS; k++) {
+                    if (GET_BIT(mem, k) == (next_token == f)) {
+                        TOGGLE_BIT(pattern_3, c);
                         SET_BIT(g, c);
                     }
-                } else {
-                    a[i]--;
-                    CLEAR_BIT(g, c);
+                    if (GET_BIT(mem, k) != (next_token == f)) {
+                        TOGGLE_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                        SET_BIT(g, c);
+                    }
                 }
                 c++;
             }
         }
     }
     
-    for (int i = 0; i < FEATURES_PER_CLASS; i++) {
-        if (a[i] > 0) {
-            TOGGLE_BIT(pattern_4, i);
-            TOGGLE_BIT(g, i);
-        }
-    }
 
-    for (int i = 0; i < CLAUSES_OF_OUT_LAYER; i++) {
-        for (int j = 0; j < FEATURES_PER_CLAUSE_OF_OUT; j++) {
-            o[i] = 1;
-            k++;
-        }
-    }
     
     for (int i = 0; i < CLASSES; i++) {
         if (next_token == i) {
