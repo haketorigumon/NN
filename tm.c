@@ -37,6 +37,7 @@
 #define CLAUSES_PER_CLASS 256
 #define CLAUSES_OF_CLASS_LAYER CLASSES * CLAUSES_PER_CLASS
 #define FEATURES_PER_CLAUSE_OF_CLASS MEM
+#define FEATURES_OF_CLASS_LAYER FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER
 
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
@@ -46,7 +47,7 @@
 
 uint8_t pattern[(FEATURES_OF_MEM_LAYER * 2 + 7) / 8];
 uint8_t pattern_2[(FEATURES_PER_META_BLOCK * 2 + 7) / 8];
-uint8_t pattern_3[(FEATURES_OF_OUT_LAYER * 2 + 7) / 8];                               
+uint8_t pattern_3[(FEATURES_OF_CLASS_LAYER * 2 + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
 
@@ -208,9 +209,9 @@ static void clauses_3(uint8_t *features, uint8_t* pattern) {
 
 static void clauses_4(uint8_t *clause_outputs) {
     int c = 0;
-    for (int k = 0; k < CLAUSES_OF_OUT_LAYER; k++) {
+    for (int k = 0; k < CLAUSES_OF_CLASS_LAYER; k++) {
         int a = 0, b = 0;
-        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_OUT; i++) {
+        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_CLASS; i++) {
             if (GET_BIT(pattern_3, c)) {
                 if (GET_BIT(mem, i)) {
                     a++;
@@ -218,7 +219,7 @@ static void clauses_4(uint8_t *clause_outputs) {
                     b++;
                 }
             }
-            if (GET_BIT(pattern_3, FEATURES_OF_OUT_LAYER + c)) {
+            if (GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
                 if (GET_BIT(mem, i)) {
                     b++;
                 } else {
@@ -254,13 +255,12 @@ static float train(uint8_t token, uint8_t next_token) {
     uint8_t *features = &token;
     uint8_t mem_layer_output[(CLAUSES_OF_MEM_LAYER + 7) / 8];
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
-    uint8_t out_layer_outputs[(CLAUSES_OF_OUT_LAYER + 7) / 8];
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
     
     clauses(mem_layer_output);
     clauses_2(meta_layer_output, mem_layer_output);
     clauses_3(features, meta_layer_output);
-    clauses_4(out_layer_outputs);
+    clauses_4(class_layer_outputs);
     
     int logits[CLASSES] = {0};
 
