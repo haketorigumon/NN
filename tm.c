@@ -267,17 +267,13 @@ static float train(uint8_t token, uint8_t next_token) {
     int c = 0;
     for (int k = 0; k < CLASSES; k++) {
         int a = 0;
-        for (int i = 0; i < FEATURES_PER_CLASS; i++) {
-            if (GET_BIT(pattern_4, i) && GET_BIT(out_layer_outputs, c)) {
-                a++;
-                SET_BIT(class_layer_outputs, c);
-                
-            }
+        for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
+            if (GET_BIT(class_layer_outputs, c)) a++;
             c++;
         }
         logits[k] = a;
     }
-
+    
     double probs[CLASSES];
     double max_val = logits[0];
     for (int i = 1; i < CLASSES; i++) {
