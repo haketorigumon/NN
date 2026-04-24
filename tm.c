@@ -313,8 +313,8 @@ static float train(uint8_t token, uint8_t next_token) {
     }
     
     int c = 0;
-    uint8_t feedback[(MEM * 2 + 7) / 8] = 0;
-    uint8_t g[(FEATURES_OF_CLASS_LAYER + 7) / 8];
+    uint8_t feedback[(MEM + 7) / 8];
+    uint8_t g[MEM] = {0};
 
     for (int f = 0; f < CLASSES; f++) {
         if ((next_token == f) || GET_BIT(o, f)) {
@@ -326,9 +326,13 @@ static float train(uint8_t token, uint8_t next_token) {
             for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
                 for (int k = 0; k < FEATURES_PER_CLAUSE_OF_CLASS; k++) {
                     if (next_token == f) {
-                        SET_BIT(feedback, k);
+                        if (p >= (float)rand() / RAND_MAX) {
+                            g[k]++;
+                        }
                     } else {
-                        CLEAR_BIT(feedback, MEM + k);
+                        if (p >= (float)rand() / RAND_MAX) {
+                            g[k]--;
+                        }
                     }
                     if (GET_BIT(mem, k) == (next_token == f)) {
                         if (p >= (float)rand() / RAND_MAX) {
@@ -350,15 +354,22 @@ static float train(uint8_t token, uint8_t next_token) {
             }
         }
     }
-    
 
+    for (int k = 0; k < FEATURES_PER_CLAUSE_OF_CLASS; k++) {
+        if (g[k] > 0) {
+            SET_BIT(feedback, k);
+        } else {
+            CLEAR_BIT(feedback, k);
+        }
+    }
     
-    for (int i = 0; i < CLASSES; i++) {
+    c = 0;
+    for (int i = 0; i < CLAUSES_OF_INPUT_LAYER; i++) {
         if (next_token == i) {
             float p = 1.0f - (float)probs[i];
-            for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
-                if(GET_BIT(class_layer_outputs, i * CLAUSES_PER_CLASS + f) {
-                    up(mem, pattern_2, FEATURES_PER_CLAUSE_OF_CLASS, CLAUSES_PER_CLASS * CLASSES, 1);
+            for (int f = 0; f < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; f++) {
+                if(GET_BIT(feedback, c) == GET_BIT(features, f)) {
+                    SET_BIT(feedback, c);
                 }
             }
         } else {
