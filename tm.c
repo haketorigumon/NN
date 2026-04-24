@@ -334,12 +334,39 @@ static float train(uint8_t token, uint8_t next_token) {
                             g[k]--;
                         }
                     }
+
+                    if (next_token == f) {
+                        if (GET_BIT(mem, k)) {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                SET_BIT(pattern_3, c);
+                            }
+                            if (p >= (float)rand() / RAND_MAX) {
+                                CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                            }
+                            if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                                g[k]++;
+                            }
+                        } else {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                            }
+                            if (p >= (float)rand() / RAND_MAX) {
+                                CLEAR_BIT(pattern_3, c);
+                            }
+                            if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                                g[k]--;
+                            }
+                        }
+                    }
                     if (GET_BIT(mem, k) == (next_token == f)) {
                         if (p >= (float)rand() / RAND_MAX) {
                             SET_BIT(pattern_3, c);
                         }
                         if (p >= (float)rand() / RAND_MAX) {
                             CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                        }
+                        if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                            g[k]++;
                         }
                     } else {
                         if (p >= (float)rand() / RAND_MAX) {
