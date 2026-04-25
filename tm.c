@@ -383,51 +383,52 @@ static float train(uint8_t token, uint8_t next_token) {
             CLEAR_BIT(feedback, k);
         }
     }
-    
+
+    uint8_t *feedback_2 = meta_layer_output;
     c = 0;
     for (int i = 0; i < CLAUSES_OF_INPUT_LAYER; i++) {
         for (int f = 0; f < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; f++) {
-            if (GET_BIT(feedback, c)) {
-                if (GET_BIT(mem, k)) {
+            if (GET_BIT(feedback, i)) {
+                if (GET_BIT(features, c)) {
                     if (p >= (float)rand() / RAND_MAX) {
-                        SET_BIT(pattern_3, c);
+                        SET_BIT(feedback_2, c);
                     }
                     if (p >= (float)rand() / RAND_MAX) {
-                        CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                        CLEAR_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, c)) {
                         g[k]++;
                     }
                 } else {
                     if (p >= (float)rand() / RAND_MAX) {
-                        SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                        SET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
                     if (p >= (float)rand() / RAND_MAX) {
-                        CLEAR_BIT(pattern_3, c);
+                        CLEAR_BIT(feedback_2, c);
                     }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c)) {
                         g[k]--;
                     }
                 }
             } else {
-                if (GET_BIT(mem, k)) {
+                if (GET_BIT(features, k)) {
                     if (p >= (float)rand() / RAND_MAX) {
-                        CLEAR_BIT(pattern_3, c);
+                        CLEAR_BIT(feedback_2, c);
                     }
                     if (p >= (float)rand() / RAND_MAX) {
-                        SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                        SET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c)) {
                         g[k]++;
                     }
                 } else {
                     if (p >= (float)rand() / RAND_MAX) {
-                        CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                        CLEAR_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
                     if (p >= (float)rand() / RAND_MAX) {
-                        SET_BIT(pattern_3, c);
+                        SET_BIT(feedback_2, c);
                     }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, c)) {
                         g[k]--;
                     }
                 }
