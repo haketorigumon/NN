@@ -326,16 +326,6 @@ static float train(uint8_t token, uint8_t next_token) {
             for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
                 for (int k = 0; k < FEATURES_PER_CLAUSE_OF_CLASS; k++) {
                     if (next_token == f) {
-                        if (p >= (float)rand() / RAND_MAX) {
-                            g[k]++;
-                        }
-                    } else {
-                        if (p >= (float)rand() / RAND_MAX) {
-                            g[k]--;
-                        }
-                    }
-
-                    if (next_token == f) {
                         if (GET_BIT(mem, k)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 SET_BIT(pattern_3, c);
