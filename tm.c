@@ -396,18 +396,12 @@ static float train(uint8_t token, uint8_t next_token) {
                     if (p >= (float)rand() / RAND_MAX) {
                         CLEAR_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, c)) {
-                        g[k]++;
-                    }
                 } else {
                     if (p >= (float)rand() / RAND_MAX) {
                         SET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
                     if (p >= (float)rand() / RAND_MAX) {
                         CLEAR_BIT(feedback_2, c);
-                    }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c)) {
-                        g[k]--;
                     }
                 }
             } else {
@@ -418,18 +412,12 @@ static float train(uint8_t token, uint8_t next_token) {
                     if (p >= (float)rand() / RAND_MAX) {
                         SET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c)) {
-                        g[k]++;
-                    }
                 } else {
                     if (p >= (float)rand() / RAND_MAX) {
                         CLEAR_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
                     }
                     if (p >= (float)rand() / RAND_MAX) {
                         SET_BIT(feedback_2, c);
-                    }
-                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(feedback_2, c)) {
-                        g[k]--;
                     }
                 }
             }
