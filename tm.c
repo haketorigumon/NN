@@ -386,21 +386,55 @@ static float train(uint8_t token, uint8_t next_token) {
     
     c = 0;
     for (int i = 0; i < CLAUSES_OF_INPUT_LAYER; i++) {
-        if (next_token == i) {
-            float p = 1.0f - (float)probs[i];
-            for (int f = 0; f < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; f++) {
-                if(GET_BIT(feedback, c) == GET_BIT(features, f)) {
-                    SET_BIT(feedback, c);
+        for (int f = 0; f < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; f++) {
+            if (GET_BIT(feedback, c)) {
+                if (GET_BIT(mem, k)) {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(pattern_3, c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                    }
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                        g[k]++;
+                    }
+                } else {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(pattern_3, c);
+                    }
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                        g[k]--;
+                    }
                 }
-            }
-        } else {
-            if (probs[i] == 0.0) {
-                a;
             } else {
-                a;
+                if (GET_BIT(mem, k)) {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(pattern_3, c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                    }
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                        g[k]++;
+                    }
+                } else {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(pattern_3, c);
+                    }
+                    if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                        g[k]--;
+                    }
+                }
             }
         }
     }
+}
     if (next_token != idx) {
         
 
