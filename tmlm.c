@@ -123,6 +123,28 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
+static bool clause(const uint8_t *features, uint8_t *pattern_ptr, size_t feature_size) {
+
+    int a = 0, b = 0;
+    for (int i = 0; i < feature_size; i++) {
+        if (GET_BIT(pattern_ptr, k * feature_size + i)) {
+            if (GET_BIT(features, i)) {
+                a++;
+            } else {
+                b++;
+            }
+        }
+        if (GET_BIT(pattern_ptr, k * feature_size + i + clause_size * feature_size)) {
+            if (GET_BIT(features, i)) {
+                b++;
+            } else {
+                a++;
+            }
+        }
+    }
+    return b < abs(a - b);
+}
+
 static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
                     uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
 
