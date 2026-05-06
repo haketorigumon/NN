@@ -104,6 +104,13 @@ static void clauses(uint8_t *clause_outputs, const uint8_t *features,
             CLEAR_BIT(clause_outputs, k);
         }
     }
+    for (int k = 0; k < input_size; k++) {
+        if (clause(features, pattern + clause_size * 2 * feature_size + k * 2 * (feature_size + input), feature_size + input)) {
+            SET_BIT(clause_outputs, k);
+        } else {
+            CLEAR_BIT(clause_outputs, k);
+        }
+    }
 }
 
 static bool clause(const uint8_t *features, uint8_t *pattern, size_t feature_size) {
