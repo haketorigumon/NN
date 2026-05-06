@@ -116,126 +116,6 @@ static int categorical_sample(double* probs) {
     return a[k - 1];
 }
 
-static void clauses(uint8_t *clause_outputs) {
-    int c = 0;
-    for (int k = 0; k < CLAUSES_OF_MEM_LAYER; k++) {
-        int a = 0, b = 0;
-        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_MEM_LAYER; i++) {
-            if (GET_BIT(pattern, c)) {
-                if (GET_BIT(mem, i)) {
-                    a++;
-                } else {
-                    b++;
-                }
-            }
-            if (GET_BIT(pattern, FEATURES_OF_MEM_LAYER + c)) {
-                if (GET_BIT(mem, i)) {
-                    b++;
-                } else {
-                    a++;
-                }
-            }
-            c++;
-        }
-        if (b < abs(a - b)) {
-            SET_BIT(clause_outputs, k);
-        } else {
-            CLEAR_BIT(clause_outputs, k);
-        }
-    }
-}
-
-static void clauses_2(uint8_t *clause_outputs, const uint8_t *features) {
-    for (int j = 0; j < BLOCKS_OF_META_LAYER; j++) {
-        int d = 0;
-        for (int k = 0; k < CLAUSES_PER_META_BLOCK; k++) {
-            int a = 0, b = 0;
-            int c = j * FEATURES_PER_CLAUSE_OF_META;
-            for (int i = 0; i < FEATURES_PER_CLAUSE_OF_META; i++) {
-                if (GET_BIT(pattern_2, d)) {
-                    if (GET_BIT(features, c)) {
-                        a++;
-                    } else {
-                        b++;
-                    }
-                }
-                if (GET_BIT(pattern_2, FEATURES_OF_META_LAYER + d)) {
-                    if (GET_BIT(features, c)) {
-                        b++;
-                    } else {
-                        a++;
-                    }
-                }
-                c++;
-                d++;
-            }
-            if (b < abs(a - b)) {
-                SET_BIT(clause_outputs, k);
-            } else {
-                CLEAR_BIT(clause_outputs, k);
-            }
-        }
-    }
-}
-
-static void clauses_3(uint8_t *features, uint8_t* pattern) {
-    int c = 0;
-    for (int k = 0; k < CLAUSES_OF_INPUT_LAYER; k++) {
-        int a = 0, b = 0;
-        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; i++) {
-            if (GET_BIT(pattern, c)) {
-                if (GET_BIT(features, i)) {
-                    a++;
-                } else {
-                    b++;
-                }
-            }
-            if (GET_BIT(pattern, FEATURES_OF_INPUT_LAYER + c)) {
-                if (GET_BIT(features, i)) {
-                    b++;
-                } else {
-                    a++;
-                }
-            }
-            c++;
-        }
-        if (b < abs(a - b)) {
-            SET_BIT(mem, k);
-        } else {
-            CLEAR_BIT(mem, k);
-        }
-    }
-}
-
-static void clauses_4(uint8_t *clause_outputs) {
-    int c = 0;
-    for (int k = 0; k < CLAUSES_OF_CLASS_LAYER; k++) {
-        int a = 0, b = 0;
-        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_CLASS; i++) {
-            if (GET_BIT(pattern_3, c)) {
-                if (GET_BIT(mem, i)) {
-                    a++;
-                } else {
-                    b++;
-                }
-            }
-            if (GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
-                if (GET_BIT(mem, i)) {
-                    b++;
-                } else {
-                    a++;
-                }
-            }
-            c++;
-        }
-        if (b < abs(a - b)) {
-            SET_BIT(clause_outputs, k);
-        } else {
-            CLEAR_BIT(clause_outputs, k);
-        }
-    }
-}
-
 static void layer(uint8_t *clause_outputs, const uint8_t *features,
                     uint8_t *pattern, size_t clause_size, size_t feature_size) {
 
@@ -280,14 +160,11 @@ static bool clause(const uint8_t *features, uint8_t *pattern, size_t feature_siz
 static float train(uint8_t token, uint8_t next_token) {
     srand((float)(time(NULL)));
     uint8_t *features = &token;
-    uint8_t mem_layer_output[(CLAUSES_OF_MEM_LAYER + 7) / 8];
+    uint8_t layer_output[(CLAUSES_OF_MEM_LAYER + 7) / 8];
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
     
-    clauses(mem_layer_output);
-    clauses_2(meta_layer_output, mem_layer_output);
-    clauses_3(features, meta_layer_output);
-    clauses_4(class_layer_outputs);
+    clauses(layer_output);
     
     int logits[CLASSES] = {0};
 
