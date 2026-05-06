@@ -14,19 +14,30 @@
 #define INPUT_DIM 8
 #define MEM 512
 
+#define BLOCKS_OF_MEM_LAYER MEM
+#define CLAUSES_PER_MEM_BLOCK 512
+#define CLAUSES_OF_MEM_LAYER BLOCKS_OF_MEM_LAYER * CLAUSES_PER_MEM_BLOCK
+#define FEATURES_PER_CLAUSE_OF_MEM_LAYER MEM
+#define FEATURES_OF_MEM_LAYER FEATURES_PER_CLAUSE_OF_MEM_LAYER * CLAUSES_OF_MEM_LAYER
+
 #define BLOCKS_OF_META_LAYER MEM
-#define CLAUSES_PER_BLOCK INPUT_DIM * 2
-#define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_BLOCK
-#define FEATURES_PER_CLAUSE_OF_BLOCK MEM
+#define CLAUSES_PER_META_BLOCK INPUT_DIM * 2
+#define FEATURES_PER_CLAUSE_OF_META CLAUSES_PER_MEM_BLOCK
+#define FEATURES_PER_META_BLOCK CLAUSES_PER_META_BLOCK * FEATURES_PER_CLAUSE_OF_META
+#define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_META_BLOCK
+#define FEATURES_OF_META_LAYER FEATURES_PER_CLAUSE_OF_META * CLAUSES_OF_META_LAYER
 
 
-#define CLAUSES_OF_INPUT_LAYER BLOCKS_OF_META_LAYER
+#define CLAUSES_OF_INPUT_LAYER MEM
 #define FEATURES_PER_CLAUSE_OF_INPUT_LAYER INPUT_DIM
+#define FEATURES_OF_INPUT_LAYER FEATURES_PER_CLAUSE_OF_INPUT_LAYER * CLAUSES_OF_INPUT_LAYER
+
 
 #define CLASSES VOCAB_SIZE
 #define CLAUSES_PER_CLASS 256
 #define CLAUSES_OF_CLASS_LAYER CLASSES * CLAUSES_PER_CLASS
 #define FEATURES_PER_CLAUSE_OF_CLASS MEM
+#define FEATURES_OF_CLASS_LAYER FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER
 
 
 #define SET_BIT(arr, n)     ((arr)[(n)/8] |=  (1U << ((n)%8)))
@@ -34,8 +45,9 @@
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(CLAUSES_OF_META_LAYER * FEATURES_PER_CLAUSE_OF_BLOCK * 2 + 7) / 8];
-uint8_t pattern_2[(FEATURES_PER_CLAUSE_OF_CLASS * CLAUSES_OF_CLASS_LAYER + 7) / 8];                               
+uint8_t pattern[(FEATURES_OF_MEM_LAYER * 2 + 7) / 8];
+uint8_t pattern_2[(FEATURES_PER_META_BLOCK * 2 + 7) / 8];
+uint8_t pattern_3[(FEATURES_OF_CLASS_LAYER * 2 + 7) / 8];                               
 
 uint8_t mem[(MEM + 7) / 8];
 
@@ -47,17 +59,20 @@ static void save_weights(const char *filename) {
     }
     fwrite(pattern,   1, sizeof(pattern),   fp);
     fwrite(pattern_2, 1, sizeof(pattern_2), fp);
+    fwrite(pattern_3, 1, sizeof(pattern_3), fp);
     fclose(fp);
     printf("权重已保存到文件：%s\n", filename);
 }
 
 static void init_model(void) {
-    srand((float)(time(NULL) ^ clock()));
-    for (size_t i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
-    for (size_t i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
+    srand((float)(time(NULL)));
+    for (int i = 0; i < sizeof(pattern); i++)   pattern[i]   = (uint8_t)(rand() & 0xFF);
+    for (int i = 0; i < sizeof(pattern_2); i++) pattern_2[i] = (uint8_t)(rand() & 0xFF);
+    for (int i = 0; i < sizeof(pattern_3); i++) pattern_3[i] = (uint8_t)(rand() & 0xFF);
+    for (int i = 0; i < sizeof(pattern_4); i++) pattern_4[i] = (uint8_t)(rand() & 0xFF);
 }
 
-static int categorical_sample(const double* probs) {
+static int categorical_sample(double* probs) {
     double cum = 0.0;
     double max_val = probs[0];
     for (int i = 1; i < CLASSES; i++) {
@@ -73,8 +88,11 @@ static int categorical_sample(const double* probs) {
     int k = 0;
     int a[CLASSES];
     for (int i = 0; i < CLASSES; i++) {
-        if (probs[i] > s) {
-            a[k++] = i;
+        if (probs[i] >= s) {
+            a[k] = i;
+            k++;
+        } else {
+            probs[i] = 0.0;
         }
     }
 
@@ -82,8 +100,12 @@ static int categorical_sample(const double* probs) {
     for (int i = 0; i < k; i++) {
         p += probs[a[i]];
     }
-
-    double r = (double)rand() / RAND_MAX * p;
+    p = 1 / p;
+    for (int i = 0; i < k; i++) {
+        probs[a[i]] = probs[a[i]] * p;
+    }
+    
+    double r = (double)rand() / RAND_MAX;
     cum = 0.0;
     for (int i = 0; i < k; i++) {
         cum += probs[a[i]];
@@ -94,60 +116,26 @@ static int categorical_sample(const double* probs) {
     return a[k - 1];
 }
 
-static void clauses(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern, size_t clause_size, size_t feature_size) {
-
-    for (int k = 0; k < clause_size; k++) {
-        if (clause(features, pattern + k * 2 * feature_size, feature_size)) {
-            SET_BIT(clause_outputs, k);
-        } else {
-            CLEAR_BIT(clause_outputs, k);
-        }
-    }
-    for (int k = 0; k < input_size; k++) {
-        if (clause(features, pattern + clause_size * 2 * feature_size + k * 2 * (feature_size + input), feature_size + input)) {
-            SET_BIT(clause_outputs, k);
-        } else {
-            CLEAR_BIT(clause_outputs, k);
-        }
-    }
-}
-
-static bool clause(const uint8_t *features, uint8_t *pattern, size_t feature_size) {
-
-    int a = 0, b = 0;
-    for (int i = 0; i < feature_size; i++) {
-        if (GET_BIT(pattern, i)) {
-            if (GET_BIT(features, i)) {
-                a++;
-            } else {
-                b++;
-            }
-        }
-        if (GET_BIT(pattern, feature_size + i)) {
-            if (GET_BIT(features, i)) {
-                b++;
-            } else {
-                a++;
-            }
-        }
-    }
-    return b < abs(a - b);
-}
-
-static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern_ptr, size_t clause_size, size_t feature_size) {
-
-    for (size_t k = 0; k < clause_size; k++) {
+static void clauses(uint8_t *clause_outputs) {
+    int c = 0;
+    for (int k = 0; k < CLAUSES_OF_MEM_LAYER; k++) {
         int a = 0, b = 0;
-        for (size_t i = 0; i < feature_size; i++) {
-            if (GET_BIT(pattern_ptr, k * feature_size + i)) {
-                if (GET_BIT(features, i)) {
+        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_MEM_LAYER; i++) {
+            if (GET_BIT(pattern, c)) {
+                if (GET_BIT(mem, i)) {
                     a++;
                 } else {
                     b++;
                 }
             }
+            if (GET_BIT(pattern, FEATURES_OF_MEM_LAYER + c)) {
+                if (GET_BIT(mem, i)) {
+                    b++;
+                } else {
+                    a++;
+                }
+            }
+            c++;
         }
         if (b < abs(a - b)) {
             SET_BIT(clause_outputs, k);
@@ -157,68 +145,135 @@ static void clauses_2(uint8_t *clause_outputs, const uint8_t *features,
     }
 }
 
-static int forward(uint8_t token) {
-    srand((float)(time(NULL) ^ clock()));
-    uint8_t *features = &token;
-
-    uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
-
-    clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
-    clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-
-    uint8_t *class_layer_outputs = (uint8_t *)malloc((CLAUSES_OF_CLASS_LAYER + 7) / 8);
-    if (class_layer_outputs == NULL) {
-        perror("malloc failed in train");
-        exit(1);
-    }
-    clauses_2(class_layer_outputs, mem, pattern_2, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
-
-    int logits[CLASSES] = {0};
-    for (int k = 0; k < CLASSES; k++) {
-        int a = 0;
-        for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
-            if (GET_BIT(class_layer_outputs, k * CLAUSES_PER_CLASS + i)) a++;
+static void clauses_2(uint8_t *clause_outputs, const uint8_t *features) {
+    for (int j = 0; j < BLOCKS_OF_META_LAYER; j++) {
+        int d = 0;
+        for (int k = 0; k < CLAUSES_PER_META_BLOCK; k++) {
+            int a = 0, b = 0;
+            int c = j * FEATURES_PER_CLAUSE_OF_META;
+            for (int i = 0; i < FEATURES_PER_CLAUSE_OF_META; i++) {
+                if (GET_BIT(pattern_2, d)) {
+                    if (GET_BIT(features, c)) {
+                        a++;
+                    } else {
+                        b++;
+                    }
+                }
+                if (GET_BIT(pattern_2, FEATURES_OF_META_LAYER + d)) {
+                    if (GET_BIT(features, c)) {
+                        b++;
+                    } else {
+                        a++;
+                    }
+                }
+                c++;
+                d++;
+            }
+            if (b < abs(a - b)) {
+                SET_BIT(clause_outputs, k);
+            } else {
+                CLEAR_BIT(clause_outputs, k);
+            }
         }
-        logits[k] = a;
     }
-    free(class_layer_outputs);
-    double probs[CLASSES];
-    double max_val = logits[0];
-    for (int i = 1; i < CLASSES; i++) {
-        if (logits[i] > max_val) max_val = logits[i];
-    }
-    double sum = 0.0;
-    for (int i = 0; i < CLASSES; i++) {
-        probs[i] = exp((double)(logits[i] - max_val));
-        sum += probs[i];
-    }
-    for (int i = 0; i < CLASSES; i++) probs[i] /= sum;
-
-    return categorical_sample(probs);
 }
 
+static void clauses_3(uint8_t *features, uint8_t* pattern) {
+    int c = 0;
+    for (int k = 0; k < CLAUSES_OF_INPUT_LAYER; k++) {
+        int a = 0, b = 0;
+        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; i++) {
+            if (GET_BIT(pattern, c)) {
+                if (GET_BIT(features, i)) {
+                    a++;
+                } else {
+                    b++;
+                }
+            }
+            if (GET_BIT(pattern, FEATURES_OF_INPUT_LAYER + c)) {
+                if (GET_BIT(features, i)) {
+                    b++;
+                } else {
+                    a++;
+                }
+            }
+            c++;
+        }
+        if (b < abs(a - b)) {
+            SET_BIT(mem, k);
+        } else {
+            CLEAR_BIT(mem, k);
+        }
+    }
+}
+
+static void clauses_4(uint8_t *clause_outputs) {
+    int c = 0;
+    for (int k = 0; k < CLAUSES_OF_CLASS_LAYER; k++) {
+        int a = 0, b = 0;
+        for (int i = 0; i < FEATURES_PER_CLAUSE_OF_CLASS; i++) {
+            if (GET_BIT(pattern_3, c)) {
+                if (GET_BIT(mem, i)) {
+                    a++;
+                } else {
+                    b++;
+                }
+            }
+            if (GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                if (GET_BIT(mem, i)) {
+                    b++;
+                } else {
+                    a++;
+                }
+            }
+            c++;
+        }
+        if (b < abs(a - b)) {
+            SET_BIT(clause_outputs, k);
+        } else {
+            CLEAR_BIT(clause_outputs, k);
+        }
+    }
+}
+
+static void update(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool r) {
+    int c = 0;
+    for (int f = 0; f < clauses; f++) {
+        for (int i = 0; i < features; i++) {
+            if ((GET_BIT(pattern, i) != GET_BIT(layer, c)) == r) {
+                if (p >= (float)rand() / RAND_MAX) {
+                    TOGGLE_BIT(pattern, i);
+                }
+            }
+            c++;
+        }
+    }
+}
 
 static float train(uint8_t token, uint8_t next_token) {
-    srand((float)(time(NULL) ^ clock()));
+    srand((float)(time(NULL)));
     uint8_t *features = &token;
+    uint8_t mem_layer_output[(CLAUSES_OF_MEM_LAYER + 7) / 8];
     uint8_t meta_layer_output[(CLAUSES_OF_META_LAYER + 7) / 8];
-
-    clauses(meta_layer_output, mem, pattern, CLAUSES_OF_META_LAYER, FEATURES_PER_CLAUSE_OF_BLOCK);
-    clauses(mem, features, meta_layer_output, CLAUSES_OF_INPUT_LAYER, FEATURES_PER_CLAUSE_OF_INPUT_LAYER);
-
     uint8_t class_layer_outputs[(CLAUSES_OF_CLASS_LAYER + 7) / 8];
-    clauses_2(class_layer_outputs, mem, pattern_2, CLAUSES_OF_CLASS_LAYER, FEATURES_PER_CLAUSE_OF_CLASS);
-
-    int logits[CLASSES] = {0};
     
+    clauses(mem_layer_output);
+    clauses_2(meta_layer_output, mem_layer_output);
+    clauses_3(features, meta_layer_output);
+    clauses_4(class_layer_outputs);
+    
+    int logits[CLASSES] = {0};
+
+    int c = 0;
     for (int k = 0; k < CLASSES; k++) {
         int a = 0;
         for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
-            if (GET_BIT(class_layer_outputs, k * CLAUSES_PER_CLASS + i)) a++;
+            if (GET_BIT(class_layer_outputs, c)) a++;
+            c++;
         }
         logits[k] = a;
     }
-
+    
     double probs[CLASSES];
     double max_val = logits[0];
     for (int i = 1; i < CLASSES; i++) {
@@ -235,16 +290,147 @@ static float train(uint8_t token, uint8_t next_token) {
         probs[u] /= sum;
     }
 
-    int idx = categorical_sample(probs);
+    double cum = 0.0;
+    double max_val = probs[0];
+    for (int i = 1; i < CLASSES; i++) {
+        if (probs[i] > max_val) max_val = probs[i];
+    }
 
+    double s = 0.0;
+    for (int i = 0; i < CLASSES; i++) {
+        s += max_val - probs[i];
+    }
+    s = s / (CLASSES - 1);
+
+    float t = 0;
+    uint8_t o[(CLASSES + 7) / 8] = {1};
+    for (int i = 0; i < CLASSES; i++) {
+        if (probs[i] >= s) {
+            CLEAR_BIT(o, i);
+        } else {
+            t += probs[i];
+        }
+    }
+    
+    int c = 0;
+    uint8_t feedback[(MEM + 7) / 8];
+    uint8_t g[MEM] = {0};
+
+    for (int f = 0; f < CLASSES; f++) {
+        if ((next_token == f) || GET_BIT(o, f)) {
+            float p = 1.0f - (float)probs[f];
+            if (next_token != f) {
+                p = t;
+            }
+            int c = 0;
+            for (int i = 0; i < CLAUSES_PER_CLASS; i++) {
+                for (int k = 0; k < FEATURES_PER_CLAUSE_OF_CLASS; k++) {
+                    if (next_token == f) {
+                        if (GET_BIT(mem, k)) {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                SET_BIT(pattern_3, c);
+                            }
+                            if (p >= (float)rand() / RAND_MAX) {
+                                CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                            }
+                            if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                                g[k]++;
+                            }
+                        } else {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                            }
+                            if (p >= (float)rand() / RAND_MAX) {
+                                CLEAR_BIT(pattern_3, c);
+                            }
+                            if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                                g[k]--;
+                            }
+                        }
+                    } else {
+                        if (GET_BIT(mem, k)) {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                CLEAR_BIT(pattern_3, c);
+                            }
+                            if (p >= (float)rand() / RAND_MAX) {
+                                SET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                            }
+                            if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c)) {
+                                g[k]++;
+                            }
+                        } else {
+                            if (p >= (float)rand() / RAND_MAX) {
+                                CLEAR_BIT(pattern_3, FEATURES_OF_CLASS_LAYER + c);
+                            }
+                            if (p >= (float)rand() / RAND_MAX) {
+                                SET_BIT(pattern_3, c);
+                            }
+                            if ((p >= (float)rand() / RAND_MAX) && GET_BIT(pattern_3, c)) {
+                                g[k]--;
+                            }
+                        }
+                    }
+                }
+                c++;
+            }
+        }
+    }
+
+    for (int k = 0; k < FEATURES_PER_CLAUSE_OF_CLASS; k++) {
+        if (g[k] > 0) {
+            SET_BIT(feedback, k);
+        } else if (g[k] < 0) {
+            CLEAR_BIT(feedback, k);
+        }
+    }
+
+    uint8_t *feedback_2 = meta_layer_output;
+    c = 0;
+    for (int i = 0; i < CLAUSES_OF_INPUT_LAYER; i++) {
+        for (int f = 0; f < FEATURES_PER_CLAUSE_OF_INPUT_LAYER; f++) {
+            if (GET_BIT(feedback, i)) {
+                if (GET_BIT(features, c)) {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(feedback_2, c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
+                    }
+                } else {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(feedback_2, c);
+                    }
+                }
+            } else {
+                if (GET_BIT(features, k)) {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(feedback_2, c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
+                    }
+                } else {
+                    if (p >= (float)rand() / RAND_MAX) {
+                        CLEAR_BIT(feedback_2, FEATURES_OF_INPUT_LAYER + c);
+                    }
+                    if (p >= (float)rand() / RAND_MAX) {
+                        SET_BIT(feedback_2, c);
+                    }
+                }
+            }
+        }
+    }
+}
     if (next_token != idx) {
-        float p = 1.0f - (float)probs[next_token];
+        
 
         for (int f = 0; f < CLAUSES_PER_CLASS; f++) {
             if (!GET_BIT(class_layer_outputs, next_token * CLAUSES_PER_CLASS + f)) {
                 for (int i = 0; i < FEATURES_PER_CLAUSE_OF_CLASS; i++) {
-                    if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i)) {
-                        if (!GET_BIT(mem, i)) {
+                    if (GET_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i) != GET_BIT(mem, i)) {
                             if (p >= (float)rand() / RAND_MAX) {
                                 TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
                             } else {
@@ -304,12 +490,6 @@ static float train(uint8_t token, uint8_t next_token) {
                                 }
                             }
                         }
-                    } else {
-                        if (GET_BIT(mem, i)) {
-                            if (p >= (float)rand() / RAND_MAX) {
-                                TOGGLE_BIT(pattern_2, (next_token * CLAUSES_PER_CLASS + f) * FEATURES_PER_CLAUSE_OF_CLASS + i);
-                            }
-                        }
                     }
                 }
             }
@@ -341,12 +521,16 @@ int main(int argc, char **argv) {
             return -1;
         }
         init_model();
-        fwrite(pattern,   1, sizeof(pattern),   fp);
-        fwrite(pattern_2,   1, sizeof(pattern_2),   fp);
+        fwrite(pattern, 1, sizeof(pattern), fp);
+        fwrite(pattern_2, 1, sizeof(pattern_2), fp);
+        fwrite(pattern_3, 1, sizeof(pattern_3), fp);
+        fwrite(pattern_4, 1, sizeof(pattern_4), fp);
         fclose(fp);
     }else {
-        fread(pattern,   1, sizeof(pattern),   fp);
+        fread(pattern, 1, sizeof(pattern), fp);
         fread(pattern_2, 1, sizeof(pattern_2), fp);
+        fread(pattern_3, 1, sizeof(pattern_3), fp);
+        fread(pattern_4, 1, sizeof(pattern_4), fp);
         fclose(fp);
     }
     
