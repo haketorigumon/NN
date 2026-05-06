@@ -117,7 +117,7 @@ static int categorical_sample(double* probs) {
 }
 
 static void layer(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern, size_t clause_size, size_t feature_size) {
+                    uint8_t *pattern, int clause_size, size_t feature_size) {
 
     for (int k = 0; k < clause_size; k++) {
         if (clause(features, pattern + k * 2 * feature_size, feature_size)) {
@@ -128,9 +128,9 @@ static void layer(uint8_t *clause_outputs, const uint8_t *features,
     }
     for (int k = 0; k < input_size; k++) {
         if (clause(features, pattern + clause_size * 2 * feature_size + k * 2 * (feature_size + input), feature_size + input)) {
-            SET_BIT(clause_outputs, k);
+            SET_BIT(clause_outputs, clause_size + k);
         } else {
-            CLEAR_BIT(clause_outputs, k);
+            CLEAR_BIT(clause_outputs, clause_size + k);
         }
     }
 }
