@@ -236,18 +236,45 @@ static void clauses_4(uint8_t *clause_outputs) {
     }
 }
 
-static void update(uint8_t* layer, uint8_t* pattern, int features, int clauses, bool r) {
-    int c = 0;
-    for (int f = 0; f < clauses; f++) {
-        for (int i = 0; i < features; i++) {
-            if ((GET_BIT(pattern, i) != GET_BIT(layer, c)) == r) {
-                if (p >= (float)rand() / RAND_MAX) {
-                    TOGGLE_BIT(pattern, i);
-                }
-            }
-            c++;
+static void layer(uint8_t *clause_outputs, const uint8_t *features,
+                    uint8_t *pattern, size_t clause_size, size_t feature_size) {
+
+    for (int k = 0; k < clause_size; k++) {
+        if (clause(features, pattern + k * 2 * feature_size, feature_size)) {
+            SET_BIT(clause_outputs, k);
+        } else {
+            CLEAR_BIT(clause_outputs, k);
         }
     }
+    for (int k = 0; k < input_size; k++) {
+        if (clause(features, pattern + clause_size * 2 * feature_size + k * 2 * (feature_size + input), feature_size + input)) {
+            SET_BIT(clause_outputs, k);
+        } else {
+            CLEAR_BIT(clause_outputs, k);
+        }
+    }
+}
+
+static bool clause(const uint8_t *features, uint8_t *pattern, size_t feature_size) {
+
+    int a = 0, b = 0;
+    for (int i = 0; i < feature_size; i++) {
+        if (GET_BIT(pattern, i)) {
+            if (GET_BIT(features, i)) {
+                a++;
+            } else {
+                b++;
+            }
+        }
+        if (GET_BIT(pattern, feature_size + i)) {
+            if (GET_BIT(features, i)) {
+                b++;
+            } else {
+                a++;
+            }
+        }
+    }
+    return b < abs(a - b);
 }
 
 static float train(uint8_t token, uint8_t next_token) {
