@@ -14,23 +14,16 @@
 #define INPUT_DIM 8
 #define MEM 512
 
-#define BLOCKS_OF_MEM_LAYER MEM
-#define CLAUSES_PER_MEM_BLOCK 512
-#define CLAUSES_OF_MEM_LAYER BLOCKS_OF_MEM_LAYER * CLAUSES_PER_MEM_BLOCK
-#define FEATURES_PER_CLAUSE_OF_MEM_LAYER MEM
-#define FEATURES_OF_MEM_LAYER FEATURES_PER_CLAUSE_OF_MEM_LAYER * CLAUSES_OF_MEM_LAYER
-
-#define BLOCKS_OF_META_LAYER MEM
-#define CLAUSES_PER_META_BLOCK INPUT_DIM * 2
-#define FEATURES_PER_CLAUSE_OF_META CLAUSES_PER_MEM_BLOCK
-#define FEATURES_PER_META_BLOCK CLAUSES_PER_META_BLOCK * FEATURES_PER_CLAUSE_OF_META
-#define CLAUSES_OF_META_LAYER BLOCKS_OF_META_LAYER * CLAUSES_PER_META_BLOCK
-#define FEATURES_OF_META_LAYER FEATURES_PER_CLAUSE_OF_META * CLAUSES_OF_META_LAYER
+#define INTERNAL_CLAUSES 512
+#define INPUT_CLAUSES 8
+#define CLAUSES INTERNAL_CLAUSES + INPUT_CLAUSES
 
 
-#define CLAUSES_OF_INPUT_LAYER MEM
-#define FEATURES_PER_CLAUSE_OF_INPUT_LAYER INPUT_DIM
-#define FEATURES_OF_INPUT_LAYER FEATURES_PER_CLAUSE_OF_INPUT_LAYER * CLAUSES_OF_INPUT_LAYER
+#define FEATURES_PER_INTERNAL_CLAUSE CLAUSES
+#define FEATURES_PER_INPUT_CLAUSE INPUT_DIM + CLAUSES
+#define FEATURES_OF_INTERNAL_CLAUSES FEATURES_PER_INTERNAL_CLAUSE * INTERNAL_CLAUSES
+#define FEATURES_OF_INPUT_CLAUSES FEATURES_PER_INPUT_CLAUSE * INPUT_CLAUSES
+#define FEATURES_OF_CLAUSES FEATURES_OF_INTERNAL_CLAUSES + FEATURES_OF_INPUT_CLAUSES
 
 
 #define CLASSES VOCAB_SIZE
@@ -45,11 +38,9 @@
 #define GET_BIT(arr, n)     (((arr)[(n)/8] & (1U << ((n)%8))) != 0)
 #define TOGGLE_BIT(arr, n)  ((arr)[(n)/8] ^= (1U << ((n)%8)))
 
-uint8_t pattern[(FEATURES_OF_MEM_LAYER * 2 + 7) / 8];
-uint8_t pattern_2[(FEATURES_PER_META_BLOCK * 2 + 7) / 8];
-uint8_t pattern_3[(FEATURES_OF_CLASS_LAYER * 2 + 7) / 8];                               
+uint8_t pattern[(FEATURES_OF_CLAUSES * 2 + 7) / 8];
 
-uint8_t mem[(MEM + 7) / 8];
+uint8_t mem[(CLAUSES + 7) / 8];
 
 static void save_weights(const char *filename) {
     FILE *fp = fopen(filename, "wb");
@@ -117,7 +108,7 @@ static int categorical_sample(double* probs) {
 }
 
 static void layer(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern, int number_of_clause, size_t number_of_feature) {
+                    uint8_t *pattern, int number_of_internal_clause, int number_of_input_clause, int number_of_internal_feature, number_of_input_feature) {
 
     for (int k = 0; k < number_of_clause; k++) {
         if (clause(features, pattern + k * 2 * number_of_feature, number_of_feature)) {
@@ -127,7 +118,7 @@ static void layer(uint8_t *clause_outputs, const uint8_t *features,
         }
     }
     for (int k = 0; k < number_of_input_clause; k++) {
-        if (clause(features, pattern + number_of_clause * 2 * number_of_feature + k * 2 * (number_of_feature + number_of_input_feature), number_of_feature + number_of_input_feature)) {
+        if (clause(features, pattern + number_of_clause * 2 * number_of_internal_feature + k * 2 * (number_of_internal_feature + number_of_input_feature), number_of_internal_feature + number_of_input_feature)) {
             SET_BIT(clause_outputs, number_of_clause + k);
         } else {
             CLEAR_BIT(clause_outputs, number_of_clause + k);
