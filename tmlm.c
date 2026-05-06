@@ -117,28 +117,28 @@ static int categorical_sample(double* probs) {
 }
 
 static void layer(uint8_t *clause_outputs, const uint8_t *features,
-                    uint8_t *pattern, int clause_size, size_t feature_size) {
+                    uint8_t *pattern, int number_of_clause, size_t number_of_feature) {
 
-    for (int k = 0; k < clause_size; k++) {
-        if (clause(features, pattern + k * 2 * feature_size, feature_size)) {
+    for (int k = 0; k < number_of_clause; k++) {
+        if (clause(features, pattern + k * 2 * number_of_feature, number_of_feature)) {
             SET_BIT(clause_outputs, k);
         } else {
             CLEAR_BIT(clause_outputs, k);
         }
     }
-    for (int k = 0; k < input_size; k++) {
-        if (clause(features, pattern + clause_size * 2 * feature_size + k * 2 * (feature_size + input), feature_size + input)) {
-            SET_BIT(clause_outputs, clause_size + k);
+    for (int k = 0; k < number_of_input_clause; k++) {
+        if (clause(features, pattern + number_of_clause * 2 * number_of_feature + k * 2 * (number_of_feature + number_of_input_feature), number_of_feature + number_of_input_feature)) {
+            SET_BIT(clause_outputs, number_of_clause + k);
         } else {
-            CLEAR_BIT(clause_outputs, clause_size + k);
+            CLEAR_BIT(clause_outputs, number_of_clause + k);
         }
     }
 }
 
-static bool clause(const uint8_t *features, uint8_t *pattern, size_t feature_size) {
+static bool clause(const uint8_t *features, uint8_t *pattern, size_t number_of_feature) {
 
     int a = 0, b = 0;
-    for (int i = 0; i < feature_size; i++) {
+    for (int i = 0; i < number_of_feature; i++) {
         if (GET_BIT(pattern, i)) {
             if (GET_BIT(features, i)) {
                 a++;
@@ -146,7 +146,7 @@ static bool clause(const uint8_t *features, uint8_t *pattern, size_t feature_siz
                 b++;
             }
         }
-        if (GET_BIT(pattern, feature_size + i)) {
+        if (GET_BIT(pattern, number_of_feature + i)) {
             if (GET_BIT(features, i)) {
                 b++;
             } else {
